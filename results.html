@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宅建模試 成績ランキング</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    /* ===================== リセット & 基本 ===================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:   #0a2342;
+      --blue:   #1a56a8;
+      --gold:   #c8960c;
+      --silver: #8a9ba8;
+      --bronze: #a0522d;
+      --bg:     #f4f6fa;
+      --card:   #ffffff;
+      --text:   #1a1a2e;
+      --muted:  #6b7280;
+      --border: #e5e7eb;
+      --green:  #16a34a;
+      --red:    #dc2626;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ===================== ヒーロー ===================== */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #1a3a6b 60%, #0d1b3e 100%);
+      color: white;
+      text-align: center;
+      padding: 56px 20px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(200,150,12,0.2);
+      border: 1px solid rgba(200,150,12,0.5);
+      color: #f0c040;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(24px, 5vw, 40px);
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .hero h1 span { color: #f0c040; }
+    .hero p {
+      font-size: 15px;
+      color: rgba(255,255,255,0.7);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 28px;
+      font-weight: 900;
+      color: #f0c040;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 2px;
+    }
+
+    /* ===================== メインコンテンツ ===================== */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 16px 60px;
+    }
+
+    /* ===================== 模試選択 ===================== */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin: 36px 0 14px;
+    }
+    .exam-buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    @media(max-width:500px) { .exam-buttons { grid-template-columns: repeat(3, 1fr); } }
+
+    .exam-btn {
+      position: relative;
+      padding: 14px 8px 12px;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+    .exam-btn:hover {
+      border-color: var(--blue);
+      box-shadow: 0 4px 16px rgba(26,86,168,0.15);
+    }
+    .exam-btn:active { transform: scale(0.96); }
+    .exam-btn.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+      box-shadow: 0 4px 20px rgba(26,86,168,0.3);
+    }
+    .exam-btn.has-data:not(.active) {
+      border-color: rgba(26,86,168,0.35);
+      background: rgba(26,86,168,0.04);
+    }
+    .btn-num {
+      font-size: 16px;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 3px;
+    }
+    .btn-sub {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+    .exam-btn.active .btn-sub { color: rgba(255,255,255,0.7); }
+    .btn-dot {
+      position: absolute;
+      top: 7px; right: 7px;
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+    }
+    .exam-btn.active .btn-dot { background: #7effa8; }
+
+    /* ===================== ランキングカード ===================== */
+    .ranking-card {
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      overflow: hidden;
+      animation: fadeUp 0.35s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .card-header {
+      background: linear-gradient(135deg, var(--navy), #1a3a6b);
+      color: white;
+      padding: 24px 28px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .card-header-icon { font-size: 36px; }
+    .card-header-text h2 { font-size: 20px; font-weight: 800; }
+    .card-header-text p  { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .card-header-count {
+      margin-left: auto;
+      text-align: right;
+    }
+    .count-num   { font-size: 28px; font-weight: 900; color: #f0c040; }
+    .count-label { font-size: 11px; color: rgba(255,255,255,0.6); }
+
+    /* 表彰台 */
+    .podium {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 12px;
+      padding: 28px 20px 0;
+    }
+    .podium-item {
+      flex: 1;
+      max-width: 180px;
+      text-align: center;
+    }
+    .podium-item.second { order: 1; }
+    .podium-item.first  { order: 2; }
+    .podium-item.third  { order: 3; }
+    .podium-medal  { font-size: 36px; margin-bottom: 6px; }
+    .podium-name   { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
+    .podium-score  { font-size: 22px; font-weight: 900; }
+    .podium-score .u { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .podium-block  {
+      margin-top: 10px;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 900;
+      color: white;
+    }
+    .podium-item.first  .podium-block { height: 80px; background: linear-gradient(to bottom, #f0c040, #c8960c); }
+    .podium-item.second .podium-block { height: 60px; background: linear-gradient(to bottom, #bdc3c7, #8a9ba8); }
+    .podium-item.third  .podium-block { height: 44px; background: linear-gradient(to bottom, #cd7f32, #8b4513); }
+    .podium-item.first  .podium-score { color: #c8960c; }
+    .podium-item.second .podium-score { color: var(--silver); }
+    .podium-item.third  .podium-score { color: var(--bronze); }
+
+    /* 全体リスト */
+    .rank-table {
+      padding: 20px 24px;
+    }
+    .rank-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      transition: background 0.1s;
+    }
+    .rank-row:hover { background: #f8fafc; }
+    .rank-row.rank1 { background: rgba(240,192,64,0.08);  border: 1px solid rgba(200,150,12,0.2); }
+    .rank-row.rank2 { background: rgba(189,195,199,0.1);   border: 1px solid rgba(138,155,168,0.2); }
+    .rank-row.rank3 { background: rgba(205,127,50,0.08);  border: 1px solid rgba(160,82,45,0.2); }
+    .r-rank  { width: 36px; font-size: 15px; font-weight: 800; color: var(--muted); flex-shrink: 0; }
+    .r-medal { width: 28px; font-size: 20px; flex-shrink: 0; }
+    .r-name  { flex: 1; font-size: 15px; font-weight: 600; padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .r-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; margin: 0 12px; max-width: 180px; overflow: hidden; }
+    .r-bar  { height: 100%; background: linear-gradient(90deg, var(--blue), #56d364); border-radius: 3px; transition: width 0.6s ease; }
+    .r-score { font-size: 18px; font-weight: 800; color: var(--blue); flex-shrink: 0; min-width: 52px; text-align: right; }
+    .r-score .u { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+    /* 統計サマリー */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 0 24px 20px;
+    }
+    .stat-box {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat-box .val { font-size: 22px; font-weight: 800; color: var(--navy); }
+    .stat-box .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* 空状態 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 52px; margin-bottom: 14px; }
+    .empty-state h3 { font-size: 17px; color: var(--text); margin-bottom: 6px; }
+    .empty-state p  { font-size: 14px; }
+
+    /* ===================== アクションボタン ===================== */
+    .action-bar {
+      padding: 20px 24px 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      flex: 1;
+      min-width: 140px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+    .action-btn:hover { opacity: 0.88; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .action-btn:active { transform: scale(0.97); }
+    .btn-print {
+      background: var(--navy);
+      color: white;
+    }
+    .btn-pdf {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: white;
+    }
+    .btn-loading { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+
+    /* ===================== フッター ===================== */
+    .footer {
+      text-align: center;
+      padding: 32px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 40px;
+    }
+
+    /* ===================== 印刷スタイル ===================== */
+    @media print {
+      body { background: white; }
+      .hero, .exam-buttons, .section-title, .action-bar, .footer { display: none !important; }
+      .container { max-width: 100%; padding: 0; }
+      .ranking-card { box-shadow: none; border: 1px solid #ddd; }
+      .card-header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .podium-block { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== ヒーロー ===== -->
+  <div class="hero">
+    <div class="hero-badge">🏠 TAKKEN RANKING SYSTEM</div>
+    <h1>宅建模試<span>成績ランキング</span></h1>
+    <p>模擬試験1〜15回の成績をリアルタイムで確認・ダウンロード</p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num" id="stat-total">—</div>
+        <div class="stat-label">参加延べ人数</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-exams">—</div>
+        <div class="stat-label">実施済み模試</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-avg">—</div>
+        <div class="stat-label">全体平均点</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== メイン ===== -->
+  <div class="container">
+
+    <div class="section-title">模試を選択</div>
+
+    <div class="exam-buttons" id="exam-buttons"></div>
+
+    <div id="ranking-area"></div>
+
+  </div>
+
+  <div class="footer">
+    宅建模試ランキングシステム &nbsp;|&nbsp; データはこのブラウザに保存されています
+  </div>
+
+  <script>
+    // ============================================================
+    // データ取得
+    // ============================================================
+    const STORAGE_KEY = 'takken_exam_scores';
+
+    function loadAll() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+    }
+
+    function getExamScores(n) {
+      const all = loadAll();
+      return all[`exam${n}`] || { scores: [], date: null };
+    }
+
+    // ============================================================
+    // ヒーロー統計
+    // ============================================================
+    function buildHeroStats() {
+      const all    = loadAll();
+      const keys   = Object.keys(all);
+      let total = 0, scoreSum = 0, scoreCount = 0;
+      keys.forEach(k => {
+        const s = all[k].scores || [];
+        total += s.length;
+        s.forEach(r => { scoreSum += r.score; scoreCount++; });
+      });
+      document.getElementById('stat-total').textContent = total > 0 ? `${total}人` : '—';
+      document.getElementById('stat-exams').textContent = keys.length > 0 ? `${keys.length}回` : '—';
+      document.getElementById('stat-avg').textContent   = scoreCount > 0 ? `${(scoreSum/scoreCount).toFixed(1)}点` : '—';
+    }
+
+    // ============================================================
+    // 模試ボタン
+    // ============================================================
+    let currentExam = null;
+
+    function buildButtons() {
+      const all  = loadAll();
+      const wrap = document.getElementById('exam-buttons');
+      wrap.innerHTML = Array.from({length:15}, (_,i) => {
+        const n   = i + 1;
+        const d   = all[`exam${n}`];
+        const cnt = d ? (d.scores||[]).length : 0;
+        const hasData = cnt > 0;
+        return `
+          <button class="exam-btn ${hasData?'has-data':''}" id="ebtn-${n}" onclick="selectExam(${n})">
+            ${hasData ? '<span class="btn-dot"></span>' : ''}
+            <span class="btn-num">模試${n}</span>
+            <span class="btn-sub">${hasData ? cnt+'人参加' : '未実施'}</span>
+          </button>`;
+      }).join('');
+    }
+
+    function selectExam(n) {
+      currentExam = n;
+      document.querySelectorAll('.exam-btn').forEach(b => b.classList.remove('active'));
+      const btn = document.getElementById(`ebtn-${n}`);
+      if (btn) btn.classList.add('active');
+      renderRanking(n);
+      document.getElementById('ranking-area').scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+
+    // ============================================================
+    // ランキング描画
+    // ============================================================
+    const MEDALS  = ['🥇','🥈','🥉'];
+
+    function renderRanking(n) {
+      const exam   = getExamScores(n);
+      const scores = [...(exam.scores||[])].sort((a,b) => b.score - a.score);
+      const area   = document.getElementById('ranking-area');
+
+      if (!scores.length) {
+        area.innerHTML = `
+          <div class="ranking-card">
+            <div class="empty-state">
+              <div class="icon">📋</div>
+              <h3>模擬試験 ${n} のデータがありません</h3>
+              <p>host.html でこの模試を実施してください</p>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const avg = (scores.reduce((s,r)=>s+r.score,0)/scores.length).toFixed(1);
+      const max = scores[0].score;
+      const min = scores[scores.length-1].score;
+
+      // 表彰台（3位まで）
+      const podiumHtml = scores.length >= 1 ? buildPodium(scores) : '';
+
+      // 全リスト
+      const listHtml = scores.map((s,i) => {
+        const pct  = Math.round((s.score/50)*100);
+        const cls  = i < 3 ? `rank${i+1}` : '';
+        const med  = MEDALS[i] || '';
+        return `
+          <div class="rank-row ${cls}">
+            <div class="r-rank">${med || i+1}</div>
+            <div class="r-name">${esc(s.name)}</div>
+            <div class="r-bar-wrap"><div class="r-bar" style="width:${pct}%"></div></div>
+            <div class="r-score">${s.score}<span class="u">点</span></div>
+          </div>`;
+      }).join('');
+
+      area.innerHTML = `
+        <div class="ranking-card" id="ranking-card">
+          <div class="card-header">
+            <div class="card-header-icon">🏆</div>
+            <div class="card-header-text">
+              <h2>模擬試験 ${n} ランキング</h2>
+              <p>${exam.date || '実施日未記録'}</p>
+            </div>
+            <div class="card-header-count">
+              <div class="count-num">${scores.length}</div>
+              <div class="count-label">名参加</div>
+            </div>
+          </div>
+
+          ${podiumHtml}
+
+          <div class="stats-row">
+            <div class="stat-box"><div class="val">${max}点</div><div class="lbl">最高点</div></div>
+            <div class="stat-box"><div class="val">${avg}点</div><div class="lbl">平均点</div></div>
+            <div class="stat-box"><div class="val">${min}点</div><div class="lbl">最低点</div></div>
+          </div>
+
+          <div class="rank-table">${listHtml}</div>
+
+          <div class="action-bar">
+            <button class="action-btn btn-print" onclick="printRanking()">
+              🖨️ 印刷する
+            </button>
+            <button class="action-btn btn-pdf" id="pdf-btn" onclick="downloadPDF(${n})">
+              📄 PDFダウンロード
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function buildPodium(scores) {
+      const top = scores.slice(0,3);
+      // 表彰台は [2位, 1位, 3位] の順に並べる
+      const order = [top[1], top[0], top[2]].filter(Boolean);
+      const clsMap = ['second','first','third'];
+      const realOrder = top.length === 1 ? [top[0]] : order;
+      const items = realOrder.map((s,i) => {
+        const origIdx = top.indexOf(s);
+        const cls     = clsMap[origIdx] ?? 'first';
+        const medal   = MEDALS[origIdx] ?? '';
+        const blockLabel = origIdx + 1;
+        return `
+          <div class="podium-item ${cls}">
+            <div class="podium-medal">${medal}</div>
+            <div class="podium-name">${esc(s.name)}</div>
+            <div class="podium-score">${s.score}<span class="u">点</span></div>
+            <div class="podium-block">${blockLabel}</div>
+          </div>`;
+      }).join('');
+      return `<div class="podium">${items}</div>`;
+    }
+
+    // ============================================================
+    // 印刷
+    // ============================================================
+    function printRanking() {
+      window.print();
+    }
+
+    // ============================================================
+    // PDFダウンロード
+    // ============================================================
+    async function downloadPDF(n) {
+      const btn = document.getElementById('pdf-btn');
+      btn.classList.add('btn-loading');
+      btn.textContent = '⏳ 生成中...';
+
+      try {
+        const card = document.getElementById('ranking-card');
+
+        // action-barを一時非表示
+        const actionBar = card.querySelector('.action-bar');
+        actionBar.style.display = 'none';
+
+        const canvas = await html2canvas(card, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          logging: false
+        });
+
+        actionBar.style.display = '';
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const pageW = 210;
+        const pageH = 297;
+        const margin = 10;
+        const imgW = pageW - margin * 2;
+        const imgH = (canvas.height / canvas.width) * imgW;
+
+        let yPos = margin;
+        let remainH = imgH;
+        const pageImgH = pageH - margin * 2;
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+        while (remainH > 0) {
+          const sliceH = Math.min(remainH, pageImgH);
+          pdf.addImage(imgData, 'JPEG', margin, yPos, imgW, imgH);
+          remainH -= pageImgH;
+          if (remainH > 0) {
+            pdf.addPage();
+            yPos = margin - (imgH - sliceH);
+          }
+        }
+
+        pdf.save(`宅建模試${n}_ランキング.pdf`);
+      } catch(e) {
+        alert('PDF生成に失敗しました。印刷機能をお使いください。');
+        console.error(e);
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = '📄 PDFダウンロード';
+      }
+    }
+
+    // ============================================================
+    // ユーティリティ
+    // ============================================================
+    function esc(str) {
+      return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+    }
+
+    // ============================================================
+    // 初期化
+    // ============================================================
+    buildHeroStats();
+    buildButtons();
+
+    // URLパラメータで模試を指定できる (?exam=3 など)
+    const params = new URLSearchParams(window.location.search);
+    const initExam = parseInt(params.get('exam'));
+    if (initExam >= 1 && initExam <= 15) selectExam(initExam);
+  </script>
+</body>
+</html>
