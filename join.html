@@ -4,27 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>宅建模試 点数入力</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       padding: 20px;
     }
     .card {
-      background: white;
-      border-radius: 24px;
-      padding: 36px 28px;
-      width: 100%;
-      max-width: 420px;
+      background: white; border-radius: 24px;
+      padding: 36px 28px; width: 100%; max-width: 420px;
       box-shadow: 0 24px 64px rgba(0,0,0,0.25);
     }
     h1 { font-size: 24px; color: #1a1a2e; text-align: center; margin-bottom: 6px; }
-    .subtitle { color: #999; font-size: 14px; text-align: center; margin-bottom: 28px; }
+    .subtitle { color: #999; font-size: 14px; text-align: center; margin-bottom: 28px; line-height: 1.5; }
     .field { margin-bottom: 18px; }
     label { display: block; font-size: 14px; font-weight: 700; color: #444; margin-bottom: 7px; }
     input {
@@ -61,13 +57,19 @@
     /* エラー */
     #error-screen { display:none; text-align:center; }
     #error-screen .icon { font-size: 52px; margin-bottom: 12px; }
-    #error-screen h2 { font-size: 19px; color: #e74c3c; margin-bottom: 8px; }
+    #error-screen h2 { font-size: 18px; color: #e74c3c; margin-bottom: 8px; }
     #error-screen p { color: #999; font-size: 14px; line-height: 1.6; margin-bottom: 18px; }
     .reload-btn {
       padding: 12px 28px; background: #667eea; color: white;
       border: none; border-radius: 10px; font-size: 15px;
       font-weight: 700; cursor: pointer; font-family: inherit;
     }
+
+    /* URLなし画面 */
+    #no-room { display:none; text-align:center; }
+    #no-room .icon { font-size: 52px; margin-bottom: 14px; }
+    #no-room h2 { font-size: 18px; color: #1a1a2e; margin-bottom: 8px; }
+    #no-room p { color: #999; font-size: 14px; line-height: 1.6; }
   </style>
 </head>
 <body>
@@ -90,7 +92,9 @@
       <div class="error" id="score-err"></div>
     </div>
 
-    <button class="submit-btn" id="submit-btn" onclick="submitScore()">送信してランキングを見る 🚀</button>
+    <button class="submit-btn" id="submit-btn" onclick="submitScore()">
+      送信してランキングを見る 🚀
+    </button>
   </div>
 
   <!-- 送信完了 -->
@@ -101,70 +105,91 @@
     <p>ランキングに登録されました。<br>先生の画面を確認してください！</p>
   </div>
 
-  <!-- エラー -->
+  <!-- 接続エラー -->
   <div id="error-screen">
     <div class="icon">😢</div>
-    <h2>接続できませんでした</h2>
-    <p>URLをもう一度確認するか、<br>先生にQRコードを再表示してもらってください。</p>
+    <h2>送信できませんでした</h2>
+    <p>ネットワークを確認して<br>もう一度お試しください。</p>
     <button class="reload-btn" onclick="location.reload()">再試行する</button>
+  </div>
+
+  <!-- URLなし（QRコードなしで直接開いた場合） -->
+  <div id="no-room">
+    <div class="icon">📱</div>
+    <h2>先生のQRコードをスキャンしてください</h2>
+    <p>このページは先生のランキング画面に表示されている<br>QRコード、またはLINEで受け取ったURLから開いてください。</p>
   </div>
 
 </div>
 
-<script type="module">
-  import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, serverTimestamp }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script>
+  const params   = new URLSearchParams(window.location.search);
+  const roomCode = params.get('room');
+  const examN    = params.get('exam') || '1';
 
-  const params = new URLSearchParams(window.location.search);
-  const apiKey = params.get('key');
-  const pid    = params.get('pid');
-  const examN  = params.get('exam') || '1';
+  if (!roomCode) {
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('no-room').style.display = 'block';
+  } else {
+    document.getElementById('exam-label').textContent = `模擬試験 ${examN} の点数を入力してください`;
+  }
 
-  // URLパラメータが不正な場合
-  if (!apiKey || !pid) {
+  window.submitScore = function () {
+    const name     = document.getElementById('name').value.trim();
+    const scoreRaw = document.getElementById('score').value;
+    const score    = parseInt(scoreRaw, 10);
+    const nameErr  = document.getElementById('name-err');
+    const scoreErr = document.getElementById('score-err');
+    const btn      = document.getElementById('submit-btn');
+
+    nameErr.textContent = ''; scoreErr.textContent = '';
+    let hasErr = false;
+    if (!name)                                               { nameErr.textContent  = '名前を入力してください'; hasErr = true; }
+    if (scoreRaw === '' || isNaN(score) || score < 0 || score > 50) { scoreErr.textContent = '0〜50の整数を入力してください'; hasErr = true; }
+    if (hasErr) return;
+
+    btn.disabled    = true;
+    btn.textContent = '送信中...';
+
+    const BROKER = 'wss://broker.hivemq.com:8884/mqtt';
+    const client = mqtt.connect(BROKER, {
+      clientId: 'join_' + Math.random().toString(36).substr(2,8),
+      clean: true,
+      connectTimeout: 12000,
+    });
+
+    const timeout = setTimeout(() => {
+      client.end(true);
+      showError();
+    }, 15000);
+
+    client.on('connect', () => {
+      const payload = JSON.stringify({ name, score, exam: parseInt(examN, 10) });
+      client.publish(`takken/${roomCode}`, payload, { qos: 1 }, (err) => {
+        clearTimeout(timeout);
+        client.end(true);
+        if (err) showError();
+        else     showSuccess(name, score);
+      });
+    });
+
+    client.on('error', () => {
+      clearTimeout(timeout);
+      client.end(true);
+      showError();
+    });
+  };
+
+  function showSuccess(name, score) {
+    document.getElementById('form-section').style.display    = 'none';
+    document.getElementById('success-section').style.display = 'block';
+    document.getElementById('success-name').textContent  = `${name}さん、お疲れ様！`;
+    document.getElementById('success-score').textContent = `${score} 点`;
+  }
+
+  function showError() {
     document.getElementById('form-section').style.display = 'none';
     document.getElementById('error-screen').style.display = 'block';
-    document.querySelector('#error-screen h2').textContent = 'URLが正しくありません';
-    document.querySelector('#error-screen p').textContent  = '先生からQRコードまたはURLを受け取ってアクセスしてください。';
-  } else {
-    // 模試番号をラベルに反映
-    document.getElementById('exam-label').textContent = `模擬試験 ${examN} の点数を入力してください`;
-
-    const app = initializeApp({ apiKey, authDomain: `${pid}.firebaseapp.com`, projectId: pid });
-    const db  = getFirestore(app);
-
-    window.submitScore = async function () {
-      const name     = document.getElementById('name').value.trim();
-      const scoreRaw = document.getElementById('score').value;
-      const score    = parseInt(scoreRaw, 10);
-      const nameErr  = document.getElementById('name-err');
-      const scoreErr = document.getElementById('score-err');
-      const btn      = document.getElementById('submit-btn');
-
-      nameErr.textContent = ''; scoreErr.textContent = '';
-      let err = false;
-      if (!name)                                               { nameErr.textContent  = '名前を入力してください'; err = true; }
-      if (scoreRaw === '' || isNaN(score) || score < 0 || score > 50) { scoreErr.textContent = '0〜50の整数を入力してください'; err = true; }
-      if (err) return;
-
-      btn.disabled    = true;
-      btn.textContent = '送信中...';
-
-      try {
-        await setDoc(
-          doc(db, `exams/exam${examN}/scores`, name),
-          { name, score, submittedAt: serverTimestamp() }
-        );
-        document.getElementById('form-section').style.display   = 'none';
-        document.getElementById('success-section').style.display = 'block';
-        document.getElementById('success-name').textContent  = `${name}さん、お疲れ様！`;
-        document.getElementById('success-score').textContent = `${score} 点`;
-      } catch (e) {
-        document.getElementById('form-section').style.display = 'none';
-        document.getElementById('error-screen').style.display = 'block';
-      }
-    };
   }
 </script>
 </body>
