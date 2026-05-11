@@ -6,6 +6,7 @@
   <title>宅建模試 成績ランキング</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
   <style>
     /* ===================== リセット & 基本 ===================== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -371,7 +372,7 @@
 
   </div>
 
-  <div class="footer">
+  <div class="footer" id="footer-msg">
     宅建模試ランキングシステム &nbsp;|&nbsp; データはこのブラウザに保存されています
   </div>
 
@@ -615,6 +616,60 @@
     }
 
     // ============================================================
+    // MQTT経由でデータ取得（?room=ROOMCODE でアクセスした場合）
+    // ============================================================
+    function loadFromMQTT(room) {
+      const footer = document.getElementById('footer-msg');
+      footer.innerHTML = '📡 データを受信中... <span id="mqtt-status">接続中</span>';
+
+      const client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
+        clientId: 'results_' + Math.random().toString(36).substr(2,6),
+        clean: true,
+        connectTimeout: 15000,
+      });
+
+      let received = 0;
+
+      client.on('connect', () => {
+        document.getElementById('mqtt-status').textContent = '受信中';
+        for (let n = 1; n <= 15; n++) {
+          client.subscribe(`takken/data/${room}/exam${n}`, { qos: 1 });
+        }
+        // 2秒後にretained message受信完了とみなしてUI確定
+        setTimeout(() => {
+          if (received === 0) {
+            footer.textContent = '宅建模試ランキングシステム | データなし（先生がhost.htmlを起動してください）';
+          } else {
+            footer.textContent = `宅建模試ランキングシステム | ${received}件の模試データを受信しました`;
+          }
+        }, 2500);
+      });
+
+      client.on('message', (topic, payload) => {
+        const match = topic.match(/exam(\d+)$/);
+        if (!match) return;
+        const n = parseInt(match[1]);
+        const payloadStr = payload.toString();
+        if (!payloadStr) return;
+        try {
+          const examData = JSON.parse(payloadStr);
+          if (!examData.scores || !examData.scores.length) return;
+          const all = loadAll();
+          all[`exam${n}`] = examData;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+          received++;
+          buildHeroStats();
+          buildButtons();
+          if (currentExam === n) renderRanking(n);
+        } catch {}
+      });
+
+      client.on('error', () => {
+        footer.textContent = '接続エラー。ページを再読み込みしてください。';
+      });
+    }
+
+    // ============================================================
     // 初期化
     // ============================================================
     buildHeroStats();
@@ -624,6 +679,10 @@
     const params = new URLSearchParams(window.location.search);
     const initExam = parseInt(params.get('exam'));
     if (initExam >= 1 && initExam <= 15) selectExam(initExam);
+
+    // ?room=ROOMCODE でアクセスした場合はMQTTからデータ取得
+    const roomParam = params.get('room');
+    if (roomParam) loadFromMQTT(roomParam);
   </script>
 </body>
 </html>

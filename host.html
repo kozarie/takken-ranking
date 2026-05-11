@@ -227,10 +227,17 @@
       <div class="counter">参加者: <span id="count">0</span>人</div>
 
       <div class="share-area">
-        <div class="share-label-sm">生徒に送るURL</div>
+        <div class="share-label-sm">生徒に送るURL（点数入力）</div>
         <div class="share-url" id="join-url-text">—</div>
         <button class="panel-btn btn-copy" onclick="copyJoinUrl()">📋 URLをコピー</button>
         <button class="panel-btn btn-line" onclick="shareToLine()">💬 LINEで送る</button>
+      </div>
+
+      <div class="share-area" style="margin-top:10px;">
+        <div class="share-label-sm" style="color:#f0c040;">📊 成績閲覧QR（生徒・保護者用）</div>
+        <div id="results-qrcode" style="background:white;border-radius:8px;padding:8px;display:inline-block;margin:8px 0;"></div>
+        <div class="share-url" id="results-url-text">—</div>
+        <button class="panel-btn btn-copy" onclick="copyResultsUrl()">📋 成績URLをコピー</button>
       </div>
 
       <button class="panel-btn btn-reset" onclick="resetCurrent()">🗑 スコアリセット</button>
@@ -259,6 +266,7 @@
   // ローカルストレージ（永久保存）
   // ============================================================
   const STORAGE_KEY = 'takken_exam_scores';
+  const ROOM_KEY    = 'takken_room_code';
   function localAll()    { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch { return {}; } }
   function saveLocal(n, name, score) {
     const all = localAll(), key = `exam${n}`;
@@ -268,10 +276,18 @@
     else all[key].scores.push({ name, score });
     if (!all[key].date) all[key].date = new Date().toLocaleDateString('ja-JP');
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    publishScores(n, all[key]);
   }
   function resetLocal(n) {
     const all = localAll(); delete all[`exam${n}`];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    if (mqttClient && mqttClient.connected) {
+      mqttClient.publish(`takken/data/${roomCode}/exam${n}`, '', { qos: 1, retain: true });
+    }
+  }
+  function publishScores(n, examData) {
+    if (!mqttClient || !mqttClient.connected) return;
+    mqttClient.publish(`takken/data/${roomCode}/exam${n}`, JSON.stringify(examData), { qos: 1, retain: true });
   }
 
   // ============================================================
@@ -281,7 +297,11 @@
   const CLASSES = ['gold','silver','bronze'];
   const BROKER  = 'wss://broker.hivemq.com:8884/mqtt';
 
-  const roomCode = Math.random().toString(36).substr(2,8).toUpperCase();
+  const roomCode = (() => {
+    let code = localStorage.getItem(ROOM_KEY);
+    if (!code) { code = Math.random().toString(36).substr(2,8).toUpperCase(); localStorage.setItem(ROOM_KEY, code); }
+    return code;
+  })();
   let mqttClient  = null;
   let currentExam = null;
   let joinUrl     = '';
@@ -368,10 +388,19 @@
     document.getElementById('room-display').textContent  = roomCode;
     window._examJoinUrl = examJoinUrl;
 
-    // QR 再生成
+    // 生徒用QR（点数入力）
     const qrEl = document.getElementById('qrcode');
     qrEl.innerHTML = '';
     new QRCode(qrEl, { text: examJoinUrl, width: 180, height: 180, colorDark:'#000', colorLight:'#fff' });
+
+    // 成績閲覧QR
+    const base2 = window.location.href.replace(/host\.html.*$/, '');
+    const resultsUrl = `${base2}results.html?room=${roomCode}`;
+    document.getElementById('results-url-text').textContent = resultsUrl;
+    window._resultsUrl = resultsUrl;
+    const rqEl = document.getElementById('results-qrcode');
+    rqEl.innerHTML = '';
+    new QRCode(rqEl, { text: resultsUrl, width: 140, height: 140, colorDark:'#000', colorLight:'#fff' });
 
     renderRanking();
     show('s-main');
@@ -442,6 +471,17 @@
       const btn = document.querySelector('.btn-copy');
       btn.textContent = '✅ コピーしました！';
       setTimeout(() => btn.textContent = '📋 URLをコピー', 2000);
+    } catch { prompt('このURLをコピーしてください:', url); }
+  }
+
+  async function copyResultsUrl() {
+    const url = window._resultsUrl; if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      const btns = document.querySelectorAll('.btn-copy');
+      const btn = btns[1];
+      btn.textContent = '✅ コピーしました！';
+      setTimeout(() => btn.textContent = '📋 成績URLをコピー', 2000);
     } catch { prompt('このURLをコピーしてください:', url); }
   }
 
