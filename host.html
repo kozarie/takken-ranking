@@ -15,150 +15,86 @@
       color: white;
     }
 
-    /* ======= 接続待ち画面 ======= */
-    #connecting {
+    /* ======= 共通 ======= */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: block; }
+
+    /* ======= 接続中 ======= */
+    #s-connecting {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      gap: 16px;
     }
     .spinner {
       width: 48px; height: 48px;
-      border: 5px solid rgba(255,255,255,0.2);
+      border: 5px solid rgba(255,255,255,0.15);
       border-top-color: white;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ======= デプロイ案内画面 ======= */
-    #deploy-guide {
-      display: none;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 40px 24px;
-    }
-    #deploy-guide h1 { font-size: 24px; margin-bottom: 8px; text-align: center; }
-    #deploy-guide .subtitle { color: #aaa; text-align: center; margin-bottom: 32px; }
-    .step {
-      background: rgba(255,255,255,0.08);
-      border-radius: 14px;
-      padding: 20px 24px;
-      margin-bottom: 16px;
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-    }
-    .step-num {
-      background: #667eea;
-      color: white;
-      font-weight: 800;
-      font-size: 18px;
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .step h3 { font-size: 16px; margin-bottom: 4px; }
-    .step p { color: #bbb; font-size: 14px; line-height: 1.6; }
-    .step a { color: #56d364; }
-    .note {
-      background: rgba(255,200,0,0.1);
-      border: 1px solid rgba(255,200,0,0.3);
-      border-radius: 10px;
-      padding: 14px 18px;
-      font-size: 14px;
-      color: #ffd700;
-      margin-top: 8px;
-    }
+    /* ======= 模試選択 ======= */
+    #s-select { padding: 32px 20px; }
+    .page-header { text-align: center; margin-bottom: 32px; }
+    .page-header h1 { font-size: 26px; margin-bottom: 6px; }
+    .page-header p  { color: #aaa; font-size: 14px; }
 
-    /* ======= メイン画面 ======= */
-    #main {
-      display: none;
-      padding: 20px;
-    }
-    .layout {
+    .exam-grid {
       display: grid;
-      grid-template-columns: 280px 1fr;
-      gap: 24px;
-      max-width: 1100px;
-      margin: 0 auto;
-      align-items: start;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+      max-width: 700px;
+      margin: 0 auto 32px;
+    }
+    .exam-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      position: relative;
+    }
+    .exam-card:hover { background: rgba(255,255,255,0.13); }
+    .exam-card:active { transform: scale(0.97); }
+    .exam-card.has-data { border-color: rgba(86,211,100,0.4); }
+    .exam-num { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .exam-meta { font-size: 12px; color: #888; }
+    .exam-card.has-data .exam-meta { color: #56d364; }
+    .exam-badge {
+      position: absolute;
+      top: 8px; right: 8px;
+      background: #56d364;
+      color: #000;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
     }
 
-    /* 左パネル (QR) */
-    .qr-panel {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px;
-      padding: 24px;
-      text-align: center;
+    /* ======= メイン（ランキング中） ======= */
+    #s-main { padding: 20px; }
+    .top-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
     }
-    .qr-panel h2 { font-size: 15px; color: #aaa; margin-bottom: 16px; }
-    #qrcode {
-      background: white;
-      border-radius: 12px;
-      padding: 12px;
-      display: inline-block;
-      margin-bottom: 16px;
-    }
-    .room-code {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 4px;
-    }
-    .room-code strong {
-      font-size: 22px;
-      letter-spacing: 4px;
-      color: white;
-      display: block;
-      margin-top: 4px;
-      font-family: monospace;
-    }
-    .hint { font-size: 12px; color: #666; margin-top: 12px; line-height: 1.5; }
-    .status-dot {
-      display: inline-block;
-      width: 8px; height: 8px;
-      background: #56d364;
-      border-radius: 50%;
-      margin-right: 6px;
-      animation: blink 2s infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    .status { font-size: 13px; color: #56d364; margin-top: 12px; }
-    .count-badge {
-      display: inline-block;
+    .back-btn {
       background: rgba(255,255,255,0.1);
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-size: 14px;
-      margin-top: 10px;
-    }
-    .reset-btn {
-      margin-top: 16px;
-      width: 100%;
-      padding: 10px;
-      background: rgba(231,76,60,0.2);
-      border: 1px solid rgba(231,76,60,0.4);
-      color: #e74c3c;
-      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 14px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 13px;
     }
-    .reset-btn:hover { background: rgba(231,76,60,0.35); }
-
-    /* 右パネル (ランキング) */
-    .ranking-panel h1 {
-      font-size: clamp(18px, 3vw, 28px);
-      font-weight: 800;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+    .back-btn:hover { background: rgba(255,255,255,0.18); }
+    .exam-title { font-size: 22px; font-weight: 800; }
     .live-badge {
       background: #e74c3c;
       font-size: 12px;
@@ -169,224 +105,374 @@
       align-items: center;
       gap: 5px;
     }
+    .dot { width:8px;height:8px;background:white;border-radius:50%;animation:blink 1.5s infinite; }
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 20px;
+      max-width: 1100px;
+      align-items: start;
+    }
+    @media(max-width:700px){ .layout{ grid-template-columns:1fr; } }
+
+    /* 左パネル */
+    .qr-panel {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      padding: 20px;
+      text-align: center;
+    }
+    .qr-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 14px; }
+    #qrcode { background:white; border-radius:10px; padding:10px; display:inline-block; margin-bottom:14px; }
+    .room-label { font-size: 12px; color: #888; }
+    .room-code  { font-size: 22px; font-weight: 800; letter-spacing: 4px; font-family: monospace; }
+    .counter    { background: rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 14px; font-size: 14px; margin: 10px 0; display: inline-block; }
+    .status-line { font-size: 13px; color: #56d364; margin-bottom: 10px; }
+
+    .panel-btn {
+      width: 100%;
+      padding: 9px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .btn-reset  { background: rgba(231,76,60,0.2);  border: 1px solid rgba(231,76,60,0.4);  color: #e74c3c; }
+    .btn-view   { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #ccc; }
+    .btn-reset:hover { background: rgba(231,76,60,0.35); }
+    .btn-view:hover  { background: rgba(255,255,255,0.15); }
+
+    /* ランキング */
     .rank-item {
       display: flex;
       align-items: center;
       background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 13px;
+      padding: 13px 16px;
+      margin-bottom: 9px;
+      animation: in 0.3s ease;
+    }
+    @keyframes in { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
+    .rank-item.gold   { background:rgba(255,215,0,0.12); border-color:rgba(255,215,0,0.35); }
+    .rank-item.silver { background:rgba(192,192,192,0.12); border-color:rgba(192,192,192,0.3); }
+    .rank-item.bronze { background:rgba(205,127,50,0.12); border-color:rgba(205,127,50,0.35); }
+    .medal    { font-size:24px; width:34px; text-align:center; flex-shrink:0; }
+    .rank-num { font-size:17px; font-weight:800; width:34px; text-align:center; color:#777; flex-shrink:0; }
+    .rank-name{ flex:1; font-size:clamp(14px,2.5vw,17px); font-weight:600; padding:0 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rank-score{ font-size:clamp(19px,3vw,24px); font-weight:800; color:#56d364; flex-shrink:0; }
+    .rank-score .unit{ font-size:12px; color:#888; font-weight:400; }
+    .empty { text-align:center; color:#555; padding:60px 20px; }
+    .empty .icon { font-size:44px; margin-bottom:12px; }
+
+    /* ======= 過去結果 ======= */
+    #s-history { padding: 32px 20px; }
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      max-width: 900px;
+      margin: 24px auto 0;
+    }
+    .history-card {
+      background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 14px;
-      padding: 14px 18px;
-      margin-bottom: 10px;
-      animation: slideIn 0.3s ease;
+      padding: 18px 20px;
     }
-    @keyframes slideIn {
-      from { opacity:0; transform: translateY(-6px); }
-      to   { opacity:1; transform: translateY(0); }
+    .history-card h3 { font-size: 16px; font-weight: 800; margin-bottom: 10px; }
+    .history-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
     }
-    .rank-item.gold   { background: rgba(255,215,0,0.12);  border-color: rgba(255,215,0,0.4); }
-    .rank-item.silver { background: rgba(192,192,192,0.12); border-color: rgba(192,192,192,0.35); }
-    .rank-item.bronze { background: rgba(205,127,50,0.12); border-color: rgba(205,127,50,0.4); }
-    .medal { font-size: 26px; width: 36px; text-align: center; flex-shrink: 0; }
-    .rank-num { font-size: 18px; font-weight: 800; width: 36px; text-align: center; color: #777; flex-shrink: 0; }
-    .rank-name { flex: 1; font-size: clamp(15px,2.5vw,18px); font-weight: 600; padding: 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .rank-score { font-size: clamp(20px,3vw,26px); font-weight: 800; color: #56d364; flex-shrink: 0; }
-    .rank-score .unit { font-size: 13px; color: #888; font-weight: 400; margin-left: 2px; }
-    .bar-row { padding: 0 48px 0 84px; margin-bottom: 6px; margin-top: -6px; display: none; }
-    .bar-wrap { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; }
-    .bar { height: 100%; background: linear-gradient(90deg,#667eea,#56d364); border-radius: 2px; }
-
-    .empty {
-      text-align: center;
-      color: #555;
-      padding: 60px 20px;
-      font-size: 18px;
+    .history-row:last-child { border-bottom: none; }
+    .h-name { color: #ccc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 160px; }
+    .h-score { color: #56d364; font-weight: 700; flex-shrink:0; }
+    .history-meta { font-size: 12px; color: #666; margin-bottom: 10px; }
+    .view-btn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #ccc;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
     }
-    .empty .icon { font-size: 48px; margin-bottom: 14px; }
-
-    /* レスポンシブ */
-    @media (max-width: 700px) {
-      .layout { grid-template-columns: 1fr; }
-    }
+    .view-btn:hover { background: rgba(255,255,255,0.15); }
   </style>
 </head>
 <body>
 
-  <!-- 接続待ち -->
-  <div id="connecting">
-    <div class="spinner"></div>
-    <p>接続中...</p>
-  </div>
-
-  <!-- デプロイ案内（file://で開いた場合） -->
-  <div id="deploy-guide">
-    <h1>🚀 あと1ステップで使えます</h1>
-    <p class="subtitle">このファイルをインターネット上に置く必要があります。<br>無料・1分・ドラッグするだけです。</p>
-
-    <div class="step">
-      <div class="step-num">1</div>
-      <div>
-        <h3><a href="https://app.netlify.com/drop" target="_blank">app.netlify.com/drop ↗</a> を開く</h3>
-        <p>Googleアカウントでサインイン（無料）</p>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div>
-        <h3>「exam-ranking」フォルダをドラッグ＆ドロップ</h3>
-        <p>ページ上の点線エリアにフォルダをそのまま落とすだけ</p>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div>
-        <h3>表示されたURLの末尾に <strong>/host.html</strong> をつけて開く</h3>
-        <p>例：<code>https://○○○.netlify.app/host.html</code></p>
-      </div>
-    </div>
-
-    <div class="note">
-      💡 一度デプロイすれば次回からはそのURLを開くだけです。QRコードが自動で表示されます。
+  <!-- 接続中 -->
+  <div id="s-connecting" class="screen active">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;">
+      <div class="spinner"></div>
+      <p style="color:#aaa">接続中...</p>
     </div>
   </div>
 
-  <!-- メイン画面 -->
-  <div id="main">
+  <!-- 模試選択 -->
+  <div id="s-select" class="screen">
+    <div class="page-header">
+      <h1>🏠 宅建模試ランキング</h1>
+      <p>今日の模試を選んでください</p>
+    </div>
+    <div class="exam-grid" id="exam-grid"></div>
+    <div style="text-align:center">
+      <button class="btn-view panel-btn" style="display:inline-block;width:auto;padding:10px 24px;" onclick="showHistory()">
+        📊 過去の結果を見る
+      </button>
+    </div>
+  </div>
+
+  <!-- ランキング中 -->
+  <div id="s-main" class="screen">
+    <div class="top-bar">
+      <button class="back-btn" onclick="goSelect()">← 模試選択</button>
+      <span class="exam-title" id="current-title">模擬試験1</span>
+      <span class="live-badge"><span class="dot"></span>LIVE</span>
+    </div>
     <div class="layout">
-
-      <!-- 左：QRコード -->
       <div class="qr-panel">
-        <h2>生徒用QRコード</h2>
+        <h3>生徒用QRコード</h3>
         <div id="qrcode"></div>
-        <div class="room-code">
-          ルームコード
-          <strong id="room-display">------</strong>
-        </div>
-        <div class="status">
-          <span class="status-dot"></span>受付中
-        </div>
-        <div class="count-badge">参加者: <span id="count">0</span>人</div>
-        <button class="reset-btn" onclick="resetScores()">🗑 スコアをリセット</button>
+        <div class="room-label">ルームコード</div>
+        <div class="room-code" id="room-display">------</div>
+        <div class="status-line">● 受付中</div>
+        <div class="counter">参加者: <span id="count">0</span>人</div>
+        <br>
+        <button class="panel-btn btn-reset" onclick="resetCurrent()">🗑 スコアリセット</button>
+        <button class="panel-btn btn-view" onclick="goSelect()">← 模試を変える</button>
       </div>
-
-      <!-- 右：ランキング -->
-      <div class="ranking-panel">
-        <h1>
-          🏠 宅建模試ランキング
-          <span class="live-badge">
-            <span class="status-dot"></span>LIVE
-          </span>
-        </h1>
+      <div>
         <div id="ranking-list">
-          <div class="empty">
-            <div class="icon">⏳</div>
-            生徒の送信を待っています...
-          </div>
+          <div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>
         </div>
       </div>
-
     </div>
+  </div>
+
+  <!-- 過去結果 -->
+  <div id="s-history" class="screen">
+    <div class="top-bar">
+      <button class="back-btn" onclick="goSelect()">← 模試選択</button>
+      <span class="exam-title">過去の結果</span>
+    </div>
+    <div class="history-grid" id="history-grid"></div>
   </div>
 
   <script>
-    // ======= file://検出 =======
-    if (window.location.protocol === 'file:') {
-      document.getElementById('connecting').style.display = 'none';
-      document.getElementById('deploy-guide').style.display = 'block';
-      throw new Error('file:// mode — showing deploy guide');
+    // ============================================================
+    // ストレージ
+    // ============================================================
+    const STORAGE_KEY = 'takken_exam_scores';
+
+    function loadAll() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+    }
+    function saveAll(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+    function getExam(n) {
+      return loadAll()[`exam${n}`] || { scores: [], date: null };
+    }
+    function saveScore(n, name, score) {
+      const all  = loadAll();
+      const key  = `exam${n}`;
+      if (!all[key]) all[key] = { scores: [], date: null };
+      const idx  = all[key].scores.findIndex(s => s.name === name);
+      if (idx >= 0) all[key].scores[idx].score = score;
+      else all[key].scores.push({ name, score });
+      if (!all[key].date) all[key].date = new Date().toLocaleDateString('ja-JP');
+      saveAll(all);
+    }
+    function resetExam(n) {
+      const all = loadAll();
+      delete all[`exam${n}`];
+      saveAll(all);
     }
 
-    // ======= PeerJS 初期化 =======
+    // ============================================================
+    // 状態
+    // ============================================================
+    let currentExam = null;
+    let peer        = null;
+    let qrGenerated = false;
     const MEDALS  = ['🥇','🥈','🥉'];
     const CLASSES = ['gold','silver','bronze'];
 
-    let scores = JSON.parse(sessionStorage.getItem('scores') || '[]');
-    let roomCode = sessionStorage.getItem('roomCode') || genCode();
-
-    function genCode() {
-      const c = Math.random().toString(36).substr(2,6).toUpperCase();
-      sessionStorage.setItem('roomCode', c);
-      return c;
-    }
-
-    document.getElementById('room-display').textContent = roomCode;
-
-    const peer = new Peer(roomCode, { debug: 0 });
-
-    peer.on('open', (id) => {
-      document.getElementById('connecting').style.display = 'none';
-      document.getElementById('main').style.display = 'block';
-
-      const base = window.location.href.replace(/host\.html.*$/, '');
-      const joinUrl = `${base}join.html?room=${id}`;
-
-      new QRCode(document.getElementById('qrcode'), {
-        text: joinUrl,
-        width: 200, height: 200,
-        colorDark: '#000000', colorLight: '#ffffff'
+    // ============================================================
+    // PeerJS 初期化
+    // ============================================================
+    function initPeer(callback) {
+      if (peer && peer.open) { callback(); return; }
+      const code = Math.random().toString(36).substr(2,6).toUpperCase();
+      peer = new Peer(code, { debug: 0 });
+      peer.on('open', () => {
+        show('s-select');
+        buildExamGrid();
+        callback();
       });
-
-      renderRanking();
-    });
-
-    peer.on('connection', (conn) => {
-      conn.on('data', (data) => {
-        if (!data.name || typeof data.score !== 'number') return;
-        const idx = scores.findIndex(s => s.name === data.name);
-        if (idx >= 0) {
-          scores[idx].score = data.score;
-        } else {
-          scores.push({ name: data.name, score: data.score });
+      peer.on('connection', (conn) => {
+        conn.on('data', (data) => {
+          if (!data.name || typeof data.score !== 'number') return;
+          if (currentExam === null) return;
+          saveScore(currentExam, data.name, data.score);
+          renderRanking();
+          conn.send({ status: 'ok' });
+        });
+      });
+      peer.on('error', () => {
+        if (!peer.open) {
+          peer = null;
+          initPeer(callback);
         }
-        sessionStorage.setItem('scores', JSON.stringify(scores));
-        renderRanking();
-        conn.send({ status: 'ok' });
       });
-    });
+    }
 
-    peer.on('error', (err) => {
-      if (err.type === 'unavailable-id') {
-        sessionStorage.removeItem('roomCode');
-        window.location.reload();
+    // ============================================================
+    // 画面切替
+    // ============================================================
+    function show(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // ============================================================
+    // 模試選択グリッド
+    // ============================================================
+    function buildExamGrid() {
+      const all  = loadAll();
+      const grid = document.getElementById('exam-grid');
+      grid.innerHTML = Array.from({length:15}, (_,i) => {
+        const n   = i + 1;
+        const key = `exam${n}`;
+        const d   = all[key];
+        const cnt = d ? d.scores.length : 0;
+        const hasData = cnt > 0;
+        return `
+          <div class="exam-card ${hasData?'has-data':''}" onclick="startExam(${n})">
+            ${hasData ? `<div class="exam-badge">${cnt}人</div>` : ''}
+            <div class="exam-num">模試 ${n}</div>
+            <div class="exam-meta">${hasData ? d.date || '実施済み' : '未実施'}</div>
+          </div>`;
+      }).join('');
+    }
+
+    function goSelect() {
+      currentExam = null;
+      buildExamGrid();
+      show('s-select');
+    }
+
+    // ============================================================
+    // 模試開始
+    // ============================================================
+    function startExam(n) {
+      currentExam = n;
+      document.getElementById('current-title').textContent = `模擬試験 ${n}`;
+      document.getElementById('count').textContent = getExam(n).scores.length;
+      document.getElementById('room-display').textContent = peer.id;
+
+      // QRコード生成（初回のみ）
+      if (!qrGenerated) {
+        const base    = window.location.href.replace(/host\.html.*$/, '');
+        const joinUrl = `${base}join.html?room=${peer.id}`;
+        document.getElementById('qrcode').innerHTML = '';
+        new QRCode(document.getElementById('qrcode'), {
+          text: joinUrl,
+          width: 180, height: 180,
+          colorDark: '#000', colorLight: '#fff'
+        });
+        qrGenerated = true;
       }
-    });
 
-    function resetScores() {
-      if (!confirm('スコアをすべてリセットしますか？')) return;
-      scores = [];
-      sessionStorage.removeItem('scores');
+      renderRanking();
+      show('s-main');
+    }
+
+    function resetCurrent() {
+      if (!confirm(`模擬試験 ${currentExam} のスコアをリセットしますか？`)) return;
+      resetExam(currentExam);
       renderRanking();
     }
 
+    // ============================================================
+    // ランキング描画
+    // ============================================================
     function renderRanking() {
-      document.getElementById('count').textContent = scores.length;
-      const sorted = [...scores].sort((a,b) => b.score - a.score);
-      const list = document.getElementById('ranking-list');
+      if (currentExam === null) return;
+      const exam   = getExam(currentExam);
+      const sorted = [...exam.scores].sort((a,b) => b.score - a.score);
+      document.getElementById('count').textContent = sorted.length;
 
+      const list = document.getElementById('ranking-list');
       if (!sorted.length) {
         list.innerHTML = `<div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>`;
         return;
       }
-
       list.innerHTML = sorted.map((s,i) => {
         const cls   = CLASSES[i] ?? '';
         const medal = MEDALS[i]  ?? '';
         const numEl = medal ? '' : `<div class="rank-num">${i+1}</div>`;
-        const medEl = medal ? `<div class="medal">${medal}</div>` : `<div class="medal"></div>`;
-        const pct   = Math.round((s.score/50)*100);
+        const medEl = `<div class="medal">${medal}</div>`;
         return `
           <div class="rank-item ${cls}">
-            ${numEl}
-            ${medEl}
+            ${numEl}${medEl}
             <div class="rank-name">${esc(s.name)}</div>
             <div class="rank-score">${s.score}<span class="unit">点</span></div>
           </div>`;
       }).join('');
     }
 
-    function esc(str) {
-      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // ============================================================
+    // 過去結果
+    // ============================================================
+    function showHistory() {
+      const all  = loadAll();
+      const grid = document.getElementById('history-grid');
+      const keys = Object.keys(all).sort((a,b) => parseInt(a.replace('exam','')) - parseInt(b.replace('exam','')));
+
+      if (!keys.length) {
+        grid.innerHTML = `<p style="color:#666;text-align:center;grid-column:1/-1;padding:60px 0">まだ結果がありません</p>`;
+      } else {
+        grid.innerHTML = keys.map(key => {
+          const n      = key.replace('exam','');
+          const exam   = all[key];
+          const sorted = [...exam.scores].sort((a,b) => b.score - a.score).slice(0,5);
+          const rows   = sorted.map(s =>
+            `<div class="history-row"><span class="h-name">${esc(s.name)}</span><span class="h-score">${s.score}点</span></div>`
+          ).join('');
+          return `
+            <div class="history-card">
+              <h3>模擬試験 ${n}</h3>
+              <div class="history-meta">${exam.date || ''} ／ ${exam.scores.length}人参加</div>
+              ${rows}
+              <button class="view-btn" onclick="startExam(${n})">このランキングを表示</button>
+            </div>`;
+        }).join('');
+      }
+      show('s-history');
     }
+
+    function esc(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ============================================================
+    // 起動
+    // ============================================================
+    initPeer(() => {});
   </script>
 </body>
 </html>
