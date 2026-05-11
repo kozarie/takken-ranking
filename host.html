@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>宅建模試 ランキング [先生用]</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -17,7 +17,7 @@
     .screen.active { display: block; }
 
     /* ===== 接続中 ===== */
-    #s-connecting {
+    #s-connecting.active {
       display: flex; flex-direction: column;
       align-items: center; justify-content: center; min-height: 100vh; gap: 14px;
     }
