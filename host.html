@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宅建模試 ランキング [先生用]</title>
+  <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      color: white;
+    }
+
+    /* ======= 接続待ち画面 ======= */
+    #connecting {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 16px;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 5px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ======= デプロイ案内画面 ======= */
+    #deploy-guide {
+      display: none;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    #deploy-guide h1 { font-size: 24px; margin-bottom: 8px; text-align: center; }
+    #deploy-guide .subtitle { color: #aaa; text-align: center; margin-bottom: 32px; }
+    .step {
+      background: rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      background: #667eea;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step h3 { font-size: 16px; margin-bottom: 4px; }
+    .step p { color: #bbb; font-size: 14px; line-height: 1.6; }
+    .step a { color: #56d364; }
+    .note {
+      background: rgba(255,200,0,0.1);
+      border: 1px solid rgba(255,200,0,0.3);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 14px;
+      color: #ffd700;
+      margin-top: 8px;
+    }
+
+    /* ======= メイン画面 ======= */
+    #main {
+      display: none;
+      padding: 20px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+      align-items: start;
+    }
+
+    /* 左パネル (QR) */
+    .qr-panel {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+    }
+    .qr-panel h2 { font-size: 15px; color: #aaa; margin-bottom: 16px; }
+    #qrcode {
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+    .room-code {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .room-code strong {
+      font-size: 22px;
+      letter-spacing: 4px;
+      color: white;
+      display: block;
+      margin-top: 4px;
+      font-family: monospace;
+    }
+    .hint { font-size: 12px; color: #666; margin-top: 12px; line-height: 1.5; }
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      background: #56d364;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .status { font-size: 13px; color: #56d364; margin-top: 12px; }
+    .count-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .reset-btn {
+      margin-top: 16px;
+      width: 100%;
+      padding: 10px;
+      background: rgba(231,76,60,0.2);
+      border: 1px solid rgba(231,76,60,0.4);
+      color: #e74c3c;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .reset-btn:hover { background: rgba(231,76,60,0.35); }
+
+    /* 右パネル (ランキング) */
+    .ranking-panel h1 {
+      font-size: clamp(18px, 3vw, 28px);
+      font-weight: 800;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .live-badge {
+      background: #e74c3c;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .rank-item {
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity:0; transform: translateY(-6px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .rank-item.gold   { background: rgba(255,215,0,0.12);  border-color: rgba(255,215,0,0.4); }
+    .rank-item.silver { background: rgba(192,192,192,0.12); border-color: rgba(192,192,192,0.35); }
+    .rank-item.bronze { background: rgba(205,127,50,0.12); border-color: rgba(205,127,50,0.4); }
+    .medal { font-size: 26px; width: 36px; text-align: center; flex-shrink: 0; }
+    .rank-num { font-size: 18px; font-weight: 800; width: 36px; text-align: center; color: #777; flex-shrink: 0; }
+    .rank-name { flex: 1; font-size: clamp(15px,2.5vw,18px); font-weight: 600; padding: 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank-score { font-size: clamp(20px,3vw,26px); font-weight: 800; color: #56d364; flex-shrink: 0; }
+    .rank-score .unit { font-size: 13px; color: #888; font-weight: 400; margin-left: 2px; }
+    .bar-row { padding: 0 48px 0 84px; margin-bottom: 6px; margin-top: -6px; display: none; }
+    .bar-wrap { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .bar { height: 100%; background: linear-gradient(90deg,#667eea,#56d364); border-radius: 2px; }
+
+    .empty {
+      text-align: center;
+      color: #555;
+      padding: 60px 20px;
+      font-size: 18px;
+    }
+    .empty .icon { font-size: 48px; margin-bottom: 14px; }
+
+    /* レスポンシブ */
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 接続待ち -->
+  <div id="connecting">
+    <div class="spinner"></div>
+    <p>接続中...</p>
+  </div>
+
+  <!-- デプロイ案内（file://で開いた場合） -->
+  <div id="deploy-guide">
+    <h1>🚀 あと1ステップで使えます</h1>
+    <p class="subtitle">このファイルをインターネット上に置く必要があります。<br>無料・1分・ドラッグするだけです。</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h3><a href="https://app.netlify.com/drop" target="_blank">app.netlify.com/drop ↗</a> を開く</h3>
+        <p>Googleアカウントでサインイン（無料）</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h3>「exam-ranking」フォルダをドラッグ＆ドロップ</h3>
+        <p>ページ上の点線エリアにフォルダをそのまま落とすだけ</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h3>表示されたURLの末尾に <strong>/host.html</strong> をつけて開く</h3>
+        <p>例：<code>https://○○○.netlify.app/host.html</code></p>
+      </div>
+    </div>
+
+    <div class="note">
+      💡 一度デプロイすれば次回からはそのURLを開くだけです。QRコードが自動で表示されます。
+    </div>
+  </div>
+
+  <!-- メイン画面 -->
+  <div id="main">
+    <div class="layout">
+
+      <!-- 左：QRコード -->
+      <div class="qr-panel">
+        <h2>生徒用QRコード</h2>
+        <div id="qrcode"></div>
+        <div class="room-code">
+          ルームコード
+          <strong id="room-display">------</strong>
+        </div>
+        <div class="status">
+          <span class="status-dot"></span>受付中
+        </div>
+        <div class="count-badge">参加者: <span id="count">0</span>人</div>
+        <button class="reset-btn" onclick="resetScores()">🗑 スコアをリセット</button>
+      </div>
+
+      <!-- 右：ランキング -->
+      <div class="ranking-panel">
+        <h1>
+          🏠 宅建模試ランキング
+          <span class="live-badge">
+            <span class="status-dot"></span>LIVE
+          </span>
+        </h1>
+        <div id="ranking-list">
+          <div class="empty">
+            <div class="icon">⏳</div>
+            生徒の送信を待っています...
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ======= file://検出 =======
+    if (window.location.protocol === 'file:') {
+      document.getElementById('connecting').style.display = 'none';
+      document.getElementById('deploy-guide').style.display = 'block';
+      throw new Error('file:// mode — showing deploy guide');
+    }
+
+    // ======= PeerJS 初期化 =======
+    const MEDALS  = ['🥇','🥈','🥉'];
+    const CLASSES = ['gold','silver','bronze'];
+
+    let scores = JSON.parse(sessionStorage.getItem('scores') || '[]');
+    let roomCode = sessionStorage.getItem('roomCode') || genCode();
+
+    function genCode() {
+      const c = Math.random().toString(36).substr(2,6).toUpperCase();
+      sessionStorage.setItem('roomCode', c);
+      return c;
+    }
+
+    document.getElementById('room-display').textContent = roomCode;
+
+    const peer = new Peer(roomCode, { debug: 0 });
+
+    peer.on('open', (id) => {
+      document.getElementById('connecting').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+
+      const base = window.location.href.replace(/host\.html.*$/, '');
+      const joinUrl = `${base}join.html?room=${id}`;
+
+      new QRCode(document.getElementById('qrcode'), {
+        text: joinUrl,
+        width: 200, height: 200,
+        colorDark: '#000000', colorLight: '#ffffff'
+      });
+
+      renderRanking();
+    });
+
+    peer.on('connection', (conn) => {
+      conn.on('data', (data) => {
+        if (!data.name || typeof data.score !== 'number') return;
+        const idx = scores.findIndex(s => s.name === data.name);
+        if (idx >= 0) {
+          scores[idx].score = data.score;
+        } else {
+          scores.push({ name: data.name, score: data.score });
+        }
+        sessionStorage.setItem('scores', JSON.stringify(scores));
+        renderRanking();
+        conn.send({ status: 'ok' });
+      });
+    });
+
+    peer.on('error', (err) => {
+      if (err.type === 'unavailable-id') {
+        sessionStorage.removeItem('roomCode');
+        window.location.reload();
+      }
+    });
+
+    function resetScores() {
+      if (!confirm('スコアをすべてリセットしますか？')) return;
+      scores = [];
+      sessionStorage.removeItem('scores');
+      renderRanking();
+    }
+
+    function renderRanking() {
+      document.getElementById('count').textContent = scores.length;
+      const sorted = [...scores].sort((a,b) => b.score - a.score);
+      const list = document.getElementById('ranking-list');
+
+      if (!sorted.length) {
+        list.innerHTML = `<div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>`;
+        return;
+      }
+
+      list.innerHTML = sorted.map((s,i) => {
+        const cls   = CLASSES[i] ?? '';
+        const medal = MEDALS[i]  ?? '';
+        const numEl = medal ? '' : `<div class="rank-num">${i+1}</div>`;
+        const medEl = medal ? `<div class="medal">${medal}</div>` : `<div class="medal"></div>`;
+        const pct   = Math.round((s.score/50)*100);
+        return `
+          <div class="rank-item ${cls}">
+            ${numEl}
+            ${medEl}
+            <div class="rank-name">${esc(s.name)}</div>
+            <div class="rank-score">${s.score}<span class="unit">点</span></div>
+          </div>`;
+      }).join('');
+    }
+
+    function esc(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+</body>
+</html>

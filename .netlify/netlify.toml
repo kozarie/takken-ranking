@@ -1,0 +1,26 @@
+plugins = []
+headers = []
+redirects = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/Users/kozariejigyoubu/taisun_agent/.claude/worktrees/charming-euclid-1c778c"
+publishOrigin = "default"
+base = "/Users/kozariejigyoubu/taisun_agent/.claude/worktrees/charming-euclid-1c778c"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]

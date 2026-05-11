@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宅建模試 点数入力</title>
+  <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+    }
+    h1 {
+      font-size: 24px;
+      color: #1a1a2e;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      color: #999;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .field { margin-bottom: 20px; }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #444;
+      margin-bottom: 8px;
+    }
+    input {
+      width: 100%;
+      padding: 15px 18px;
+      font-size: 17px;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    input:focus { border-color: #667eea; }
+    .error {
+      color: #e74c3c;
+      font-size: 13px;
+      min-height: 18px;
+      margin-top: 5px;
+      padding-left: 2px;
+    }
+    button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* 結果画面 */
+    .result {
+      display: none;
+      text-align: center;
+      animation: pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes pop {
+      from { opacity:0; transform: scale(0.85); }
+      to   { opacity:1; transform: scale(1); }
+    }
+    .result .icon { font-size: 72px; margin-bottom: 16px; }
+    .result h2 { font-size: 22px; color: #1a1a2e; margin-bottom: 10px; }
+    .score-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-size: 32px;
+      font-weight: 800;
+      padding: 10px 28px;
+      border-radius: 50px;
+      margin: 12px 0 16px;
+    }
+    .result p { color: #888; font-size: 15px; line-height: 1.7; }
+
+    /* エラー画面 */
+    #error-screen {
+      display: none;
+      text-align: center;
+    }
+    #error-screen .icon { font-size: 56px; margin-bottom: 14px; }
+    #error-screen h2 { font-size: 20px; color: #e74c3c; margin-bottom: 10px; }
+    #error-screen p { color: #999; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+    .reload-btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ルームコード未指定 */
+    #no-room {
+      display: none;
+      text-align: center;
+    }
+    #no-room .icon { font-size: 56px; margin-bottom: 14px; }
+    #no-room p { color: #666; font-size: 15px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- 入力フォーム -->
+    <div id="form-section">
+      <h1>🏠 宅建模試</h1>
+      <p class="subtitle">点数を入力してランキングに参加！</p>
+
+      <div class="field">
+        <label for="name">お名前（ニックネームでもOK）</label>
+        <input type="text" id="name" placeholder="例：田中太郎" maxlength="20" autocomplete="off">
+        <div class="error" id="name-err"></div>
+      </div>
+
+      <div class="field">
+        <label for="score">今日の点数（0〜50点）</label>
+        <input type="number" id="score" placeholder="例：35" min="0" max="50" inputmode="numeric">
+        <div class="error" id="score-err"></div>
+      </div>
+
+      <button id="submit-btn" onclick="submitScore()">送信してランキングを見る 🚀</button>
+    </div>
+
+    <!-- 送信完了 -->
+    <div class="result" id="success-section">
+      <div class="icon">🎉</div>
+      <h2 id="success-name">お疲れ様でした！</h2>
+      <div class="score-badge" id="success-score">-- 点</div>
+      <p>ランキングに登録されました。<br>先生の画面を確認してください！</p>
+    </div>
+
+    <!-- 接続エラー -->
+    <div id="error-screen">
+      <div class="icon">😢</div>
+      <h2>接続できませんでした</h2>
+      <p>先生のパソコンが起動しているか確認して、<br>QRコードをもう一度スキャンしてください。</p>
+      <button class="reload-btn" onclick="window.location.reload()">再試行する</button>
+    </div>
+
+    <!-- ルームコードなし -->
+    <div id="no-room">
+      <div class="icon">🔗</div>
+      <p>QRコードから<br>アクセスしてください。</p>
+    </div>
+
+  </div>
+
+  <script>
+    const params   = new URLSearchParams(window.location.search);
+    const roomCode = params.get('room');
+
+    // ルームコードがない場合
+    if (!roomCode) {
+      document.getElementById('form-section').style.display = 'none';
+      document.getElementById('no-room').style.display = 'block';
+    }
+
+    window.submitScore = function () {
+      const name     = document.getElementById('name').value.trim();
+      const scoreRaw = document.getElementById('score').value;
+      const score    = parseInt(scoreRaw, 10);
+      const nameErr  = document.getElementById('name-err');
+      const scoreErr = document.getElementById('score-err');
+      const btn      = document.getElementById('submit-btn');
+
+      nameErr.textContent  = '';
+      scoreErr.textContent = '';
+
+      let hasError = false;
+      if (!name)                                         { nameErr.textContent  = '名前を入力してください'; hasError = true; }
+      if (scoreRaw === '' || isNaN(score) || score < 0 || score > 50) { scoreErr.textContent = '0〜50の整数を入力してください'; hasError = true; }
+      if (hasError) return;
+
+      btn.disabled    = true;
+      btn.textContent = '送信中...';
+
+      const client = new Peer({ debug: 0 });
+
+      const timeout = setTimeout(() => {
+        showError();
+      }, 12000);
+
+      client.on('open', () => {
+        const conn = client.connect(roomCode, { reliable: true });
+
+        conn.on('open', () => {
+          conn.send({ name, score });
+          clearTimeout(timeout);
+          showSuccess(name, score);
+        });
+
+        conn.on('error', () => {
+          clearTimeout(timeout);
+          showError();
+        });
+      });
+
+      client.on('error', () => {
+        clearTimeout(timeout);
+        showError();
+      });
+    };
+
+    function showSuccess(name, score) {
+      document.getElementById('form-section').style.display    = 'none';
+      document.getElementById('success-section').style.display = 'block';
+      document.getElementById('success-name').textContent  = `${name}さん、お疲れ様！`;
+      document.getElementById('success-score').textContent = `${score} 点`;
+    }
+
+    function showError() {
+      document.getElementById('form-section').style.display = 'none';
+      document.getElementById('error-screen').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

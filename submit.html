@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宅建模試 点数入力</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    h1 {
+      font-size: 24px;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #444;
+      margin-bottom: 8px;
+    }
+    input {
+      width: 100%;
+      padding: 15px 18px;
+      font-size: 17px;
+      border: 2px solid #e8e8e8;
+      border-radius: 12px;
+      margin-bottom: 6px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    input:focus { border-color: #667eea; }
+    .field-wrap { margin-bottom: 20px; }
+    .error {
+      color: #e74c3c;
+      font-size: 13px;
+      min-height: 18px;
+      padding-left: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .success {
+      display: none;
+      text-align: center;
+      padding: 10px 0;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    .checkmark { font-size: 72px; margin-bottom: 16px; }
+    .success h2 { font-size: 22px; color: #1a1a2e; margin-bottom: 10px; }
+    .success p { color: #666; font-size: 15px; line-height: 1.6; }
+    .score-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-size: 28px;
+      font-weight: 800;
+      padding: 8px 24px;
+      border-radius: 50px;
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="form-section">
+      <h1>🏠 宅建模試</h1>
+      <p class="subtitle">点数を入力してランキングに参加しよう！</p>
+
+      <div class="field-wrap">
+        <label for="name">お名前（ニックネームでもOK）</label>
+        <input type="text" id="name" placeholder="例：田中太郎" maxlength="20" autocomplete="off">
+        <div class="error" id="name-error"></div>
+      </div>
+
+      <div class="field-wrap">
+        <label for="score">今日の点数（0〜50点）</label>
+        <input type="number" id="score" placeholder="例：35" min="0" max="50" inputmode="numeric">
+        <div class="error" id="score-error"></div>
+      </div>
+
+      <button id="submit-btn" onclick="submitScore()">送信してランキングを見る 🚀</button>
+    </div>
+
+    <div class="success" id="success-section">
+      <div class="checkmark">✅</div>
+      <h2 id="success-name">送信完了！</h2>
+      <div class="score-badge" id="success-score">-- 点</div>
+      <p>ランキングに登録されました！<br>先生の画面を確認してください🎉</p>
+    </div>
+  </div>
+
+  <!-- ======= Firebase SDK ======= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ★ここにFirebaseの設定を貼り付けてください★
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.submitScore = async function () {
+      const name = document.getElementById('name').value.trim();
+      const scoreRaw = document.getElementById('score').value;
+      const score = parseInt(scoreRaw, 10);
+      const nameErr = document.getElementById('name-error');
+      const scoreErr = document.getElementById('score-error');
+      const btn = document.getElementById('submit-btn');
+
+      nameErr.textContent = '';
+      scoreErr.textContent = '';
+
+      let hasError = false;
+      if (!name) { nameErr.textContent = '名前を入力してください'; hasError = true; }
+      if (scoreRaw === '' || isNaN(score) || score < 0 || score > 50) {
+        scoreErr.textContent = '0〜50の整数を入力してください'; hasError = true;
+      }
+      if (hasError) return;
+
+      btn.disabled = true;
+      btn.textContent = '送信中...';
+
+      try {
+        await addDoc(collection(db, "scores"), {
+          name,
+          score,
+          submittedAt: serverTimestamp()
+        });
+
+        document.getElementById('form-section').style.display = 'none';
+        const s = document.getElementById('success-section');
+        s.style.display = 'block';
+        document.getElementById('success-name').textContent = `${name}さん、お疲れ様！`;
+        document.getElementById('success-score').textContent = `${score} 点`;
+      } catch (err) {
+        scoreErr.textContent = '送信エラーが発生しました。もう一度お試しください。';
+        btn.disabled = false;
+        btn.textContent = '送信してランキングを見る 🚀';
+      }
+    };
+  </script>
+</body>
+</html>

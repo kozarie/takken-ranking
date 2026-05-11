@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宅建模試 ランキング LIVE</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: #0f0c29;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      padding: 28px 20px 40px;
+      color: white;
+    }
+
+    /* ヘッダー */
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    h1 {
+      font-size: clamp(22px, 5vw, 36px);
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e74c3c;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-left: 8px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      background: white;
+      border-radius: 50%;
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+    .count {
+      color: #aaa;
+      font-size: 15px;
+      margin-top: 6px;
+    }
+
+    /* ランキングリスト */
+    .ranking-list {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .rank-item {
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      animation: slideIn 0.35s ease;
+      transition: background 0.3s;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .rank-item.gold   { background: rgba(255,215,0,0.15); border-color: rgba(255,215,0,0.5); }
+    .rank-item.silver { background: rgba(192,192,192,0.15); border-color: rgba(192,192,192,0.4); }
+    .rank-item.bronze { background: rgba(205,127,50,0.15); border-color: rgba(205,127,50,0.4); }
+
+    .medal { font-size: 28px; width: 36px; text-align: center; flex-shrink: 0; }
+    .rank-num {
+      font-size: 20px;
+      font-weight: 800;
+      width: 36px;
+      text-align: center;
+      color: #888;
+      flex-shrink: 0;
+    }
+    .rank-item.gold   .rank-num { color: gold; }
+    .rank-item.silver .rank-num { color: silver; }
+    .rank-item.bronze .rank-num { color: #cd7f32; }
+
+    .rank-name {
+      flex: 1;
+      font-size: clamp(15px, 3vw, 18px);
+      font-weight: 600;
+      padding: 0 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rank-score {
+      font-size: clamp(22px, 4vw, 28px);
+      font-weight: 800;
+      color: #56d364;
+      flex-shrink: 0;
+    }
+    .rank-score .unit {
+      font-size: 14px;
+      color: #888;
+      font-weight: 400;
+      margin-left: 2px;
+    }
+
+    /* スコアバー */
+    .bar-wrap {
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #56d364);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    /* 空状態 */
+    .empty {
+      text-align: center;
+      color: #555;
+      padding: 80px 20px;
+      font-size: 18px;
+    }
+    .empty .icon { font-size: 56px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏠 宅建模試ランキング <span class="live-badge"><span class="dot"></span>LIVE</span></h1>
+    <p class="count" id="count">参加者: 0人</p>
+  </div>
+
+  <div class="ranking-list" id="ranking-list">
+    <div class="empty">
+      <div class="icon">⏳</div>
+      参加者の送信を待っています...
+    </div>
+  </div>
+
+  <!-- ======= Firebase SDK ======= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ★ここにFirebaseの設定を貼り付けてください（submit.htmlと同じ内容）★
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const MEDALS = ['🥇', '🥈', '🥉'];
+    const CLASSES = ['gold', 'silver', 'bronze'];
+
+    function escape(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    const q = query(collection(db, "scores"), orderBy("score", "desc"), orderBy("submittedAt", "asc"));
+
+    onSnapshot(q, (snapshot) => {
+      const list = document.getElementById('ranking-list');
+      const countEl = document.getElementById('count');
+
+      if (snapshot.empty) {
+        countEl.textContent = '参加者: 0人';
+        list.innerHTML = `<div class="empty"><div class="icon">⏳</div>参加者の送信を待っています...</div>`;
+        return;
+      }
+
+      countEl.textContent = `参加者: ${snapshot.size}人`;
+
+      const html = snapshot.docs.map((doc, i) => {
+        const { name, score } = doc.data();
+        const cls = CLASSES[i] ?? '';
+        const medal = MEDALS[i] ?? '';
+        const rankNum = medal ? '' : `<div class="rank-num">${i + 1}</div>`;
+        const medalEl = medal ? `<div class="medal">${medal}</div>` : `<div class="medal"></div>`;
+        const pct = Math.round((score / 50) * 100);
+        return `
+          <div class="rank-item ${cls}">
+            ${rankNum}
+            ${medalEl}
+            <div>
+              <div class="rank-name">${escape(name)}</div>
+              <div class="bar-wrap"><div class="bar" style="width:${pct}%"></div></div>
+            </div>
+            <div class="rank-score">${score}<span class="unit">点</span></div>
+          </div>`;
+      }).join('');
+
+      list.innerHTML = html;
+    });
+  </script>
+</body>
+</html>
