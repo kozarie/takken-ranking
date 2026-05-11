@@ -238,6 +238,7 @@
         <div id="results-qrcode" style="background:white;border-radius:8px;padding:8px;display:inline-block;margin:8px 0;"></div>
         <div class="share-url" id="results-url-text">—</div>
         <button class="panel-btn btn-copy" onclick="copyResultsUrl()">📋 成績URLをコピー</button>
+        <button class="panel-btn btn-line" onclick="shareResultsToLine()">💬 LINEで成績URLを送る</button>
       </div>
 
       <button class="panel-btn btn-reset" onclick="resetCurrent()">🗑 スコアリセット</button>
@@ -488,6 +489,12 @@
   function shareToLine() {
     const url  = window._examJoinUrl; if (!url) return;
     const text = encodeURIComponent(`【宅建模試】点数を入力してください👇\n${url}`);
+    window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${text}`, '_blank');
+  }
+
+  function shareResultsToLine() {
+    const url  = window._resultsUrl; if (!url) return;
+    const text = encodeURIComponent(`【宅建模試】成績ランキングはこちら👇\n${url}`);
     window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${text}`, '_blank');
   }
 
