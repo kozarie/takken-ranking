@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>宅建模試 ランキング [先生用]</title>
+  <title>シーラ様専用 宅建模試成績ランキング [先生用]</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
   <style>
@@ -187,6 +187,283 @@
       font-size: 12px; font-family: inherit;
     }
     .view-btn:hover { background: rgba(255,255,255,0.14); }
+
+    /* ===== 黒赤ランキングテーマ ===== */
+    :root {
+      --ink: #f7f7f2;
+      --sub: #c5c0b8;
+      --faint: #8e8880;
+      --red: #e1091a;
+      --red-dark: #3b090b;
+      --gold: #f4c451;
+      --gold-deep: #9d6710;
+      --paper: #fffdf5;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+      background:
+        radial-gradient(circle at 50% -8rem, rgba(225,9,26,0.34), transparent 28rem),
+        radial-gradient(circle at 0 24rem, rgba(244,196,81,0.10), transparent 20rem),
+        linear-gradient(180deg, #101010 0%, #070707 48%, #111 100%);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+    .spinner {
+      border-color: rgba(225,9,26,0.25);
+      border-top-color: var(--gold);
+    }
+    .connecting-msg { color: var(--sub); }
+    .retry-btn,
+    .outline-btn,
+    .back-btn,
+    .btn-back,
+    .view-btn {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(225,9,26,0.45);
+      border-radius: 14px;
+      color: var(--ink);
+      font-weight: 800;
+    }
+    .retry-btn:hover,
+    .outline-btn:hover,
+    .back-btn:hover,
+    .btn-back:hover,
+    .view-btn:hover {
+      background: rgba(225,9,26,0.18);
+    }
+    #s-select,
+    #s-main,
+    #s-history {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+    .page-header {
+      margin: 0 auto 26px;
+      max-width: 720px;
+      text-align: left;
+    }
+    .page-header::before {
+      content: 'TAKKEN RANKING HOST';
+      display: block;
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      margin-bottom: 10px;
+    }
+    .page-header h1 {
+      color: var(--ink);
+      font-size: clamp(28px, 6vw, 46px);
+      line-height: 1.1;
+      letter-spacing: 0;
+      text-shadow: 0 0 24px rgba(244,196,81,0.12);
+    }
+    .page-header p { color: var(--sub); margin-top: 8px; }
+    .exam-grid {
+      max-width: 920px;
+      gap: 12px;
+    }
+    .exam-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035));
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 16px;
+      color: var(--ink);
+      padding: 18px 14px;
+      text-align: left;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+    }
+    .exam-card:hover {
+      background: rgba(225,9,26,0.16);
+      border-color: rgba(225,9,26,0.78);
+      transform: translateY(-2px);
+    }
+    .exam-card.has-data {
+      background: rgba(244,196,81,0.12);
+      border-color: rgba(244,196,81,0.44);
+    }
+    .exam-num { font-size: 17px; letter-spacing: 0; }
+    .exam-meta { color: var(--sub); font-weight: 700; }
+    .exam-card.has-data .exam-meta { color: var(--gold); }
+    .exam-badge {
+      top: 8px;
+      right: 8px;
+      background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+      color: #251404;
+      border-radius: 8px;
+      padding: 3px 7px;
+    }
+    .top-bar {
+      max-width: 1080px;
+      margin: 0 auto 18px;
+    }
+    .exam-title {
+      color: var(--gold);
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+    .live-badge {
+      background: linear-gradient(180deg, var(--red), #86070e);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      color: white;
+      letter-spacing: 0.08em;
+    }
+    .layout {
+      max-width: 1080px;
+      margin: 0 auto;
+      grid-template-columns: 280px 1fr;
+    }
+    .qr-panel,
+    .history-card {
+      background: linear-gradient(180deg, #191312, #0d0b0a);
+      border: 2px solid rgba(225,9,26,0.65);
+      border-radius: 14px;
+      box-shadow: 0 24px 58px rgba(0,0,0,0.42);
+    }
+    .qr-panel h3,
+    .share-label-sm,
+    .history-meta {
+      color: var(--sub);
+      font-weight: 800;
+    }
+    #qrcode {
+      border: 5px solid var(--red);
+      border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(225,9,26,0.22);
+    }
+    .room-label { color: var(--faint); font-weight: 700; }
+    .room-code {
+      color: var(--gold);
+      font-size: 21px;
+    }
+    .status-online { color: var(--gold); font-weight: 800; }
+    .counter {
+      background: rgba(225,9,26,0.20);
+      border: 1px solid rgba(225,9,26,0.55);
+      color: var(--ink);
+      font-weight: 800;
+    }
+    .share-area {
+      background: rgba(0,0,0,0.34);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+    }
+    .share-url { color: var(--sub); }
+    .panel-btn {
+      border-radius: 12px;
+      font-weight: 800;
+    }
+    .btn-copy {
+      background: var(--paper);
+      border: 1px solid rgba(244,196,81,0.72);
+      color: #111;
+    }
+    .btn-line {
+      background: #06c755;
+      color: #061509;
+    }
+    .btn-reset {
+      background: linear-gradient(180deg, var(--red), #86070e);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: white;
+    }
+    #ranking-list {
+      background: linear-gradient(180deg, #4b0b0f 0%, #240607 100%);
+      border: 5px solid var(--red);
+      border-radius: 14px;
+      box-shadow: 0 24px 58px rgba(0,0,0,0.46);
+      min-height: 240px;
+      padding: 14px 12px;
+    }
+    .rank-item {
+      background: var(--paper);
+      border: 2px solid #6d1519;
+      border-radius: 4px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.76);
+      color: #111;
+      min-height: 50px;
+      padding: 9px 12px;
+      margin-bottom: 8px;
+    }
+    .rank-item.gold,
+    .rank-item.silver,
+    .rank-item.bronze {
+      background: linear-gradient(90deg, #fff4bb 0%, #f6d770 46%, #fff5c9 100%);
+      border-color: #6d1519;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.82),
+        0 8px 22px rgba(244,196,81,0.18);
+      min-height: 64px;
+    }
+    .rank-item.gold { min-height: 74px; }
+    .medal,
+    .rank-num {
+      width: 42px;
+      height: 36px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      background: #2d8aa0;
+      color: white;
+      font-size: 16px;
+      font-weight: 800;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.18);
+    }
+    .rank-item.gold .medal,
+    .rank-item.silver .medal,
+    .rank-item.bronze .medal {
+      width: 48px;
+      height: 42px;
+      background: linear-gradient(180deg, #fff0a8 0%, var(--gold) 45%, var(--gold-deep) 100%);
+      color: #251404;
+      font-size: 20px;
+      box-shadow: 0 6px 16px rgba(157,103,16,0.28), inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .rank-name {
+      color: #111;
+      font-size: clamp(15px,2vw,18px);
+      font-weight: 800;
+    }
+    .rank-item.gold .rank-name,
+    .rank-item.silver .rank-name,
+    .rank-item.bronze .rank-name {
+      font-size: clamp(17px,2vw,20px);
+    }
+    .rank-score {
+      color: #111;
+      font-size: clamp(20px,3vw,26px);
+    }
+    .rank-item.gold .rank-score,
+    .rank-item.silver .rank-score,
+    .rank-item.bronze .rank-score {
+      color: #5b1606;
+      font-size: clamp(24px,3.5vw,30px);
+    }
+    .rank-score .u { color: #5f5750; font-weight: 600; }
+    .empty {
+      color: var(--sub);
+      padding: 72px 20px;
+    }
+    .empty .icon {
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 12px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, var(--red), #86070e);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .history-grid { max-width: 920px; }
+    .history-card h3 { color: var(--gold); }
+    .history-row {
+      border-bottom-color: rgba(225,9,26,0.22);
+    }
+    .h-name { color: var(--ink); }
+    .h-score { color: var(--gold); }
   </style>
 </head>
 <body>
@@ -201,12 +478,12 @@
 <!-- 模試選択 -->
 <div id="s-select" class="screen">
   <div class="page-header">
-    <h1>🏠 宅建模試ランキング</h1>
+    <h1>シーラ様専用 宅建模試成績ランキング</h1>
     <p>今日の模試を選んでください</p>
   </div>
   <div class="exam-grid" id="exam-grid"></div>
   <div class="footer-btn">
-    <button class="outline-btn" onclick="showHistory()">📊 過去の結果を見る</button>
+    <button class="outline-btn" onclick="showHistory()">過去の結果を見る</button>
   </div>
 </div>
 
@@ -229,25 +506,24 @@
       <div class="share-area">
         <div class="share-label-sm">生徒に送るURL（点数入力）</div>
         <div class="share-url" id="join-url-text">—</div>
-        <button class="panel-btn btn-copy" onclick="copyJoinUrl()">📋 URLをコピー</button>
-        <button class="panel-btn btn-line" onclick="shareToLine()">💬 LINEで送る</button>
+        <button class="panel-btn btn-copy" onclick="copyJoinUrl()">URLをコピー</button>
+        <button class="panel-btn btn-line" onclick="shareToLine()">LINEで送る</button>
       </div>
 
       <div class="share-area" style="margin-top:10px;">
-        <div class="share-label-sm" style="color:#f0c040;">📊 成績閲覧QR（生徒・保護者用）</div>
+        <div class="share-label-sm" style="color:#f0c040;">成績閲覧QR（生徒・保護者用）</div>
         <div id="results-qrcode" style="background:white;border-radius:8px;padding:8px;display:inline-block;margin:8px 0;"></div>
         <div class="share-url" id="results-url-text">—</div>
-        <button class="panel-btn btn-copy" onclick="copyResultsUrl()">📋 成績URLをコピー</button>
-        <button class="panel-btn btn-line" onclick="shareResultsToLine()">💬 LINEで成績URLを送る</button>
+        <button class="panel-btn btn-copy" onclick="copyResultsUrl()">成績URLをコピー</button>
       </div>
 
-      <button class="panel-btn btn-reset" onclick="resetCurrent()">🗑 スコアリセット</button>
+      <button class="panel-btn btn-reset" onclick="resetCurrent()">スコアリセット</button>
       <button class="panel-btn btn-back"  onclick="goSelect()">← 模試を変える</button>
     </div>
 
     <div>
       <div id="ranking-list">
-        <div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>
+        <div class="empty"><div class="icon">LIVE</div>生徒の送信を待っています...</div>
       </div>
     </div>
   </div>
@@ -291,10 +567,27 @@
     mqttClient.publish(`takken/data/${roomCode}/exam${n}`, JSON.stringify(examData), { qos: 1, retain: true });
   }
 
+  function seedDemoScores(n = 1) {
+    const names = [
+      '佐藤大輔','鈴木美咲','高橋健太','田中彩花','伊藤拓也','渡辺陽菜','山本翔太','中村葵','小林直樹','加藤結衣',
+      '吉田悠真','山田真央','佐々木蓮','山口紗季','松本隼人','井上莉子','木村優斗','林七海','清水大地','斎藤愛梨',
+      '山崎颯太','森花音','池田悠人','橋本美月','阿部航','石川千尋','前田陸','藤田琴音','岡田瑛太','後藤杏奈',
+      '長谷川蒼','村上陽菜乃','近藤匠','石井菜々子','坂本一真','遠藤彩乃','青木悠','藤井美優','西村光','福田凛',
+      '太田啓介','三浦咲良','岡本晴人','中島結菜','小川拓海','中川真由','原田大和','松田紗良','竹内悠介','和田優奈'
+    ];
+    const scores = names.map((name, i) => ({
+      name,
+      score: Math.max(18, Math.min(50, 49 - Math.floor(i * 0.62) + ((i % 5) - 2)))
+    })).sort((a,b) => b.score - a.score);
+    const all = localAll();
+    all[`exam${n}`] = { scores, date: new Date().toLocaleDateString('ja-JP') };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  }
+
   // ============================================================
   // 状態
   // ============================================================
-  const MEDALS  = ['🥇','🥈','🥉'];
+  const MEDALS  = ['1','2','3'];
   const CLASSES = ['gold','silver','bronze'];
   const BROKER  = 'wss://broker.hivemq.com:8884/mqtt';
 
@@ -329,6 +622,8 @@
     // join URL 確定
     const base = window.location.href.replace(/host\.html.*$/, '');
     joinUrl = `${base}join.html?room=${roomCode}`;
+
+    if (new URLSearchParams(location.search).get('demo') === '50') seedDemoScores(1);
 
     show('s-select');
     buildExamGrid();
@@ -423,15 +718,14 @@
     document.getElementById('count').textContent = scores.length;
     const list = document.getElementById('ranking-list');
     if (!scores.length) {
-      list.innerHTML = `<div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>`;
+      list.innerHTML = `<div class="empty"><div class="icon">LIVE</div>生徒の送信を待っています...</div>`;
       return;
     }
     list.innerHTML = scores.map((s,i) => {
       const cls = CLASSES[i]??'', med = MEDALS[i]??'';
       return `
         <div class="rank-item ${cls}">
-          ${med ? '' : `<div class="rank-num">${i+1}</div>`}
-          <div class="medal">${med}</div>
+          ${med ? `<div class="medal">${med}</div>` : `<div class="rank-num">${i+1}</div>`}
           <div class="rank-name">${esc(s.name)}</div>
           <div class="rank-score">${s.score}<span class="u">点</span></div>
         </div>`;
@@ -470,8 +764,8 @@
     try {
       await navigator.clipboard.writeText(url);
       const btn = document.querySelector('.btn-copy');
-      btn.textContent = '✅ コピーしました！';
-      setTimeout(() => btn.textContent = '📋 URLをコピー', 2000);
+      btn.textContent = 'コピーしました';
+      setTimeout(() => btn.textContent = 'URLをコピー', 2000);
     } catch { prompt('このURLをコピーしてください:', url); }
   }
 
@@ -481,14 +775,14 @@
       await navigator.clipboard.writeText(url);
       const btns = document.querySelectorAll('.btn-copy');
       const btn = btns[1];
-      btn.textContent = '✅ コピーしました！';
-      setTimeout(() => btn.textContent = '📋 成績URLをコピー', 2000);
+      btn.textContent = 'コピーしました';
+      setTimeout(() => btn.textContent = '成績URLをコピー', 2000);
     } catch { prompt('このURLをコピーしてください:', url); }
   }
 
   function shareToLine() {
     const url  = window._examJoinUrl; if (!url) return;
-    const text = encodeURIComponent(`【宅建模試】点数を入力してください👇\n${url}`);
+    const text = encodeURIComponent(`【宅建模試】点数を入力してください\n${url}`);
     window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${text}`, '_blank');
   }
 

@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>シーラ様専用 宅建模試成績ランキング</title>
+  <title>シーラ様専用 宅建模試成績ランキング スマホ版</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
   <style>
     /* ===================== リセット & 基本 ===================== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -495,7 +494,7 @@
 
   </div>
 
-  <div class="footer" id="footer-msg">
+  <div class="footer">
     宅建模試ランキングシステム &nbsp;|&nbsp; データはこのブラウザに保存されています
   </div>
 
@@ -506,9 +505,38 @@
     const STORAGE_KEY = 'takken_exam_scores';
     const PUBLIC_RESULTS_URL = 'https://kozarie.github.io/takken-ranking/results.html';
     const sharedRanking = loadSharedRanking();
+    const EMBEDDED_MOBILE_DATA = {
+      exam1: {
+        date: '2026/5/11',
+        scores: [
+          { name: '田中彩花', score: 49 }, { name: '伊藤拓也', score: 49 }, { name: '鈴木美咲', score: 48 },
+          { name: '高橋健太', score: 48 }, { name: '佐藤大輔', score: 47 }, { name: '小林直樹', score: 46 },
+          { name: '加藤結衣', score: 46 }, { name: '山本翔太', score: 45 }, { name: '中村葵', score: 45 },
+          { name: '渡辺陽菜', score: 44 }, { name: '松本隼人', score: 43 }, { name: '山田真央', score: 42 },
+          { name: '佐々木蓮', score: 42 }, { name: '山口紗季', score: 42 }, { name: '吉田悠真', score: 41 },
+          { name: '斎藤愛梨', score: 40 }, { name: '木村優斗', score: 39 }, { name: '林七海', score: 39 },
+          { name: '清水大地', score: 39 }, { name: '井上莉子', score: 38 }, { name: '阿部航', score: 37 },
+          { name: '池田悠人', score: 36 }, { name: '橋本美月', score: 36 }, { name: '山崎颯太', score: 35 },
+          { name: '森花音', score: 35 }, { name: '後藤杏奈', score: 34 }, { name: '藤田琴音', score: 33 },
+          { name: '岡田瑛太', score: 33 }, { name: '石川千尋', score: 32 }, { name: '前田陸', score: 32 },
+          { name: '近藤匠', score: 30 }, { name: '石井菜々子', score: 30 }, { name: '坂本一真', score: 30 },
+          { name: '長谷川蒼', score: 29 }, { name: '村上陽菜乃', score: 29 }, { name: '藤井美優', score: 27 },
+          { name: '西村光', score: 27 }, { name: '福田凛', score: 27 }, { name: '遠藤彩乃', score: 26 },
+          { name: '青木悠', score: 26 }, { name: '中島結菜', score: 24 }, { name: '小川拓海', score: 24 },
+          { name: '太田啓介', score: 23 }, { name: '三浦咲良', score: 23 }, { name: '岡本晴人', score: 23 },
+          { name: '竹内悠介', score: 21 }, { name: '和田優奈', score: 21 }, { name: '中川真由', score: 20 },
+          { name: '原田大和', score: 20 }, { name: '松田紗良', score: 20 }
+        ]
+      }
+    };
 
     function loadAll() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        return Object.keys(saved).length ? saved : EMBEDDED_MOBILE_DATA;
+      } catch {
+        return EMBEDDED_MOBILE_DATA;
+      }
     }
 
     function getExamScores(n) {
@@ -827,60 +855,6 @@
     }
 
     // ============================================================
-    // MQTT経由でデータ取得（?room=ROOMCODE でアクセスした場合）
-    // ============================================================
-    function loadFromMQTT(room) {
-      const footer = document.getElementById('footer-msg');
-      footer.innerHTML = '📡 データを受信中... <span id="mqtt-status">接続中</span>';
-
-      const client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
-        clientId: 'results_' + Math.random().toString(36).substr(2,6),
-        clean: true,
-        connectTimeout: 15000,
-      });
-
-      let received = 0;
-
-      client.on('connect', () => {
-        document.getElementById('mqtt-status').textContent = '受信中';
-        for (let n = 1; n <= 15; n++) {
-          client.subscribe(`takken/data/${room}/exam${n}`, { qos: 1 });
-        }
-        // 2秒後にretained message受信完了とみなしてUI確定
-        setTimeout(() => {
-          if (received === 0) {
-            footer.textContent = '宅建模試ランキングシステム | データなし（先生がhost.htmlを起動してください）';
-          } else {
-            footer.textContent = `宅建模試ランキングシステム | ${received}件の模試データを受信しました`;
-          }
-        }, 2500);
-      });
-
-      client.on('message', (topic, payload) => {
-        const match = topic.match(/exam(\d+)$/);
-        if (!match) return;
-        const n = parseInt(match[1]);
-        const payloadStr = payload.toString();
-        if (!payloadStr) return;
-        try {
-          const examData = JSON.parse(payloadStr);
-          if (!examData.scores || !examData.scores.length) return;
-          const all = loadAll();
-          all[`exam${n}`] = examData;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-          received++;
-          buildHeroStats();
-          buildButtons();
-          if (currentExam === n) renderRanking(n);
-        } catch {}
-      });
-
-      client.on('error', () => {
-        footer.textContent = '接続エラー。ページを再読み込みしてください。';
-      });
-    }
-
-    // ============================================================
     // 初期化
     // ============================================================
     buildHeroStats();
@@ -899,10 +873,6 @@
         .find(n => (all[`exam${n}`]?.scores || []).length > 0);
       selectExam(firstExamWithData || 1, false);
     }
-
-    // ?room=ROOMCODE でアクセスした場合はMQTTからデータ取得
-    const roomParam = params.get('room');
-    if (roomParam) loadFromMQTT(roomParam);
   </script>
 </body>
 </html>
