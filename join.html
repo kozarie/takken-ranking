@@ -170,22 +170,41 @@
       <button class="reload-btn" onclick="window.location.reload()">再試行する</button>
     </div>
 
-    <!-- ルームコードなし -->
-    <div id="no-room">
-      <div class="icon">🔗</div>
-      <p>QRコードから<br>アクセスしてください。</p>
+    <!-- ルームコード入力（URLなしで直接開いた場合） -->
+    <div id="no-room" style="display:none">
+      <h1 style="font-size:22px;color:#1a1a2e;margin-bottom:6px;text-align:center">🏠 宅建模試</h1>
+      <p style="color:#999;font-size:14px;text-align:center;margin-bottom:24px">先生から受け取ったルームコードを入力</p>
+      <div class="field">
+        <label for="manual-code">ルームコード（6文字）</label>
+        <input type="text" id="manual-code" placeholder="例：AB12CD" maxlength="6"
+               autocomplete="off" autocapitalize="characters"
+               style="text-transform:uppercase;letter-spacing:4px;font-size:22px;text-align:center">
+        <div class="error" id="code-err"></div>
+      </div>
+      <button onclick="applyRoomCode()" style="width:100%;padding:16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer">
+        入室する →
+      </button>
     </div>
 
   </div>
 
   <script>
-    const params   = new URLSearchParams(window.location.search);
-    const roomCode = params.get('room');
+    const params = new URLSearchParams(window.location.search);
+    let roomCode = params.get('room');
 
-    // ルームコードがない場合
+    // ルームコードがない場合：入力フォームを表示
     if (!roomCode) {
       document.getElementById('form-section').style.display = 'none';
       document.getElementById('no-room').style.display = 'block';
+    }
+
+    function applyRoomCode() {
+      const val = document.getElementById('manual-code').value.trim().toUpperCase();
+      const err = document.getElementById('code-err');
+      if (val.length < 4) { err.textContent = 'ルームコードを入力してください'; return; }
+      roomCode = val;
+      document.getElementById('no-room').style.display = 'none';
+      document.getElementById('form-section').style.display = 'block';
     }
 
     window.submitScore = function () {

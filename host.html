@@ -147,6 +147,50 @@
     .btn-reset:hover { background: rgba(231,76,60,0.35); }
     .btn-view:hover  { background: rgba(255,255,255,0.15); }
 
+    /* 共有エリア */
+    .share-area {
+      margin: 12px 0 4px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .share-label { font-size: 11px; color: #888; margin-bottom: 6px; }
+    .share-url {
+      font-size: 10px;
+      color: #aaa;
+      word-break: break-all;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .btn-copy {
+      width: 100%;
+      padding: 9px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      background: rgba(86,211,100,0.2);
+      border: 1px solid rgba(86,211,100,0.4);
+      color: #56d364;
+      font-family: inherit;
+    }
+    .btn-copy:hover { background: rgba(86,211,100,0.35); }
+    .btn-line {
+      width: 100%;
+      padding: 9px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      background: #06C755;
+      color: white;
+      font-family: inherit;
+    }
+    .btn-line:hover { background: #05a848; }
+
     /* ランキング */
     .rank-item {
       display: flex;
@@ -250,7 +294,14 @@
         <div class="room-code" id="room-display">------</div>
         <div class="status-line">● 受付中</div>
         <div class="counter">参加者: <span id="count">0</span>人</div>
-        <br>
+
+        <div class="share-area">
+          <div class="share-label">生徒に送るURL</div>
+          <div class="share-url" id="join-url-text">—</div>
+          <button class="btn-copy" onclick="copyJoinUrl()">📋 URLをコピー</button>
+          <button class="btn-line" onclick="shareToLine()">💬 LINEで送る</button>
+        </div>
+
         <button class="panel-btn btn-reset" onclick="resetCurrent()">🗑 スコアリセット</button>
         <button class="panel-btn btn-view" onclick="goSelect()">← 模試を変える</button>
       </div>
@@ -308,6 +359,7 @@
     let currentExam = null;
     let peer        = null;
     let qrGenerated = false;
+    let currentJoinUrl = '';
     const MEDALS  = ['🥇','🥈','🥉'];
     const CLASSES = ['gold','silver','bronze'];
 
@@ -318,7 +370,9 @@
       if (peer && peer.open) { callback(); return; }
       const code = Math.random().toString(36).substr(2,6).toUpperCase();
       peer = new Peer(code, { debug: 0 });
-      peer.on('open', () => {
+      peer.on('open', (id) => {
+        const base = window.location.href.replace(/host\.html.*$/, '');
+        currentJoinUrl = `${base}join.html?room=${id}`;
         show('s-select');
         buildExamGrid();
         callback();
@@ -384,13 +438,14 @@
       document.getElementById('count').textContent = getExam(n).scores.length;
       document.getElementById('room-display').textContent = peer.id;
 
+      // URL表示を更新
+      document.getElementById('join-url-text').textContent = currentJoinUrl;
+
       // QRコード生成（初回のみ）
       if (!qrGenerated) {
-        const base    = window.location.href.replace(/host\.html.*$/, '');
-        const joinUrl = `${base}join.html?room=${peer.id}`;
         document.getElementById('qrcode').innerHTML = '';
         new QRCode(document.getElementById('qrcode'), {
-          text: joinUrl,
+          text: currentJoinUrl,
           width: 180, height: 180,
           colorDark: '#000', colorLight: '#fff'
         });
@@ -405,6 +460,24 @@
       if (!confirm(`模擬試験 ${currentExam} のスコアをリセットしますか？`)) return;
       resetExam(currentExam);
       renderRanking();
+    }
+
+    async function copyJoinUrl() {
+      if (!currentJoinUrl) return;
+      try {
+        await navigator.clipboard.writeText(currentJoinUrl);
+        const btn = document.querySelector('.btn-copy');
+        btn.textContent = '✅ コピーしました！';
+        setTimeout(() => { btn.textContent = '📋 URLをコピー'; }, 2000);
+      } catch {
+        prompt('このURLをコピーしてください：', currentJoinUrl);
+      }
+    }
+
+    function shareToLine() {
+      if (!currentJoinUrl) return;
+      const text = encodeURIComponent(`【宅建模試】点数を入力してください👇\n${currentJoinUrl}`);
+      window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(currentJoinUrl)}&text=${text}`, '_blank');
     }
 
     // ============================================================
