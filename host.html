@@ -4,51 +4,109 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>宅建模試 ランキング [先生用]</title>
-  <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
       background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
       min-height: 100vh;
       color: white;
     }
-
-    /* ======= 共通 ======= */
     .screen { display: none; min-height: 100vh; }
     .screen.active { display: block; }
 
-    /* ======= 接続中 ======= */
-    #s-connecting {
-      display: flex;
-      flex-direction: column;
+    /* ===== セットアップ画面 ===== */
+    #s-setup {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .setup-logo { text-align: center; font-size: 48px; margin-bottom: 12px; }
+    .setup-title { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .setup-sub   { text-align: center; color: #aaa; font-size: 14px; margin-bottom: 32px; }
+    .setup-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .step-num {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-    .spinner {
-      width: 48px; height: 48px;
-      border: 5px solid rgba(255,255,255,0.15);
-      border-top-color: white;
+      width: 28px; height: 28px;
+      background: #667eea;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      font-size: 13px;
+      font-weight: 800;
+      margin-right: 8px;
+      flex-shrink: 0;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .step-row { display: flex; align-items: flex-start; margin-bottom: 14px; }
+    .step-text { font-size: 14px; line-height: 1.6; color: #ddd; }
+    .step-text a { color: #7eb3ff; }
+    .step-text code {
+      background: rgba(255,255,255,0.1);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .config-textarea {
+      width: 100%;
+      min-height: 140px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      color: #7effa8;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 12px;
+      resize: vertical;
+      outline: none;
+      margin-top: 10px;
+    }
+    .config-textarea:focus { border-color: #667eea; }
+    .setup-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      font-family: inherit;
+    }
+    .setup-btn:hover { opacity: 0.9; }
+    .setup-error { color: #ff7070; font-size: 13px; margin-top: 8px; }
 
-    /* ======= 模試選択 ======= */
+    /* ===== 模試選択 ===== */
     #s-select { padding: 32px 20px; }
-    .page-header { text-align: center; margin-bottom: 32px; }
-    .page-header h1 { font-size: 26px; margin-bottom: 6px; }
+    .page-header { text-align: center; margin-bottom: 28px; }
+    .page-header h1 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
     .page-header p  { color: #aaa; font-size: 14px; }
-
+    .page-header-actions { margin-top: 12px; }
+    .text-btn {
+      background: none; border: none;
+      color: #aaa; font-size: 13px;
+      cursor: pointer; text-decoration: underline;
+      font-family: inherit;
+    }
+    .text-btn:hover { color: white; }
     .exam-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
       max-width: 700px;
-      margin: 0 auto 32px;
+      margin: 0 auto 24px;
     }
     .exam-card {
+      position: relative;
       background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 14px;
@@ -56,496 +114,473 @@
       text-align: center;
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
-      position: relative;
+      font-family: inherit;
+      color: white;
     }
     .exam-card:hover { background: rgba(255,255,255,0.13); }
     .exam-card:active { transform: scale(0.97); }
     .exam-card.has-data { border-color: rgba(86,211,100,0.4); }
-    .exam-num { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-    .exam-meta { font-size: 12px; color: #888; }
+    .exam-num  { font-size: 17px; font-weight: 800; margin-bottom: 3px; }
+    .exam-meta { font-size: 11px; color: #888; }
     .exam-card.has-data .exam-meta { color: #56d364; }
     .exam-badge {
-      position: absolute;
-      top: 8px; right: 8px;
-      background: #56d364;
-      color: #000;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 10px;
+      position: absolute; top: 6px; right: 6px;
+      background: #56d364; color: #000;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 5px; border-radius: 8px;
     }
+    .footer-btn {
+      text-align: center;
+      margin-top: 8px;
+    }
+    .outline-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #ccc; padding: 10px 22px;
+      border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-family: inherit;
+    }
+    .outline-btn:hover { background: rgba(255,255,255,0.14); }
 
-    /* ======= メイン（ランキング中） ======= */
-    #s-main { padding: 20px; }
+    /* ===== メイン ===== */
+    #s-main { padding: 18px; }
     .top-bar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
+      display: flex; align-items: center;
+      gap: 10px; margin-bottom: 18px; flex-wrap: wrap;
     }
     .back-btn {
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
-      color: white;
-      padding: 8px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13px;
+      color: white; padding: 7px 13px;
+      border-radius: 8px; cursor: pointer; font-size: 13px;
+      font-family: inherit;
     }
     .back-btn:hover { background: rgba(255,255,255,0.18); }
-    .exam-title { font-size: 22px; font-weight: 800; }
+    .exam-title { font-size: 20px; font-weight: 800; }
     .live-badge {
-      background: #e74c3c;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+      background: #e74c3c; font-size: 11px; font-weight: 700;
+      padding: 3px 9px; border-radius: 20px;
+      display: inline-flex; align-items: center; gap: 4px;
     }
-    .dot { width:8px;height:8px;background:white;border-radius:50%;animation:blink 1.5s infinite; }
+    .dot { width:7px;height:7px;background:white;border-radius:50%;animation:blink 1.5s infinite; }
     @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
     .layout {
       display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: 20px;
-      max-width: 1100px;
+      grid-template-columns: 256px 1fr;
+      gap: 18px;
+      max-width: 1080px;
       align-items: start;
     }
-    @media(max-width:700px){ .layout{ grid-template-columns:1fr; } }
+    @media(max-width:680px){ .layout{ grid-template-columns:1fr; } }
 
-    /* 左パネル */
     .qr-panel {
       background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 18px;
-      padding: 20px;
+      padding: 20px 16px;
       text-align: center;
     }
-    .qr-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 14px; }
-    #qrcode { background:white; border-radius:10px; padding:10px; display:inline-block; margin-bottom:14px; }
-    .room-label { font-size: 12px; color: #888; }
-    .room-code  { font-size: 22px; font-weight: 800; letter-spacing: 4px; font-family: monospace; }
-    .counter    { background: rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 14px; font-size: 14px; margin: 10px 0; display: inline-block; }
-    .status-line { font-size: 13px; color: #56d364; margin-bottom: 10px; }
+    .qr-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 12px; }
+    #qrcode { background:white; border-radius:10px; padding:10px; display:inline-block; margin-bottom:12px; }
+    .room-label { font-size: 11px; color: #888; }
+    .room-code  { font-size: 20px; font-weight: 800; letter-spacing: 4px; font-family: monospace; margin-bottom: 8px; }
+    .counter    { background: rgba(255,255,255,0.1); border-radius: 20px; padding: 5px 12px; font-size: 13px; display: inline-block; }
+    .status-line { font-size: 12px; color: #56d364; margin: 8px 0; }
 
-    .panel-btn {
-      width: 100%;
-      padding: 9px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .btn-reset  { background: rgba(231,76,60,0.2);  border: 1px solid rgba(231,76,60,0.4);  color: #e74c3c; }
-    .btn-view   { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #ccc; }
-    .btn-reset:hover { background: rgba(231,76,60,0.35); }
-    .btn-view:hover  { background: rgba(255,255,255,0.15); }
-
-    /* 共有エリア */
     .share-area {
       margin: 12px 0 4px;
       background: rgba(0,0,0,0.25);
       border-radius: 10px;
       padding: 10px 12px;
+      text-align: left;
     }
-    .share-label { font-size: 11px; color: #888; margin-bottom: 6px; }
-    .share-url {
-      font-size: 10px;
-      color: #aaa;
-      word-break: break-all;
-      line-height: 1.4;
-      margin-bottom: 8px;
-    }
-    .btn-copy {
-      width: 100%;
-      padding: 9px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      background: rgba(86,211,100,0.2);
-      border: 1px solid rgba(86,211,100,0.4);
-      color: #56d364;
-      font-family: inherit;
-    }
-    .btn-copy:hover { background: rgba(86,211,100,0.35); }
-    .btn-line {
-      width: 100%;
-      padding: 9px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 700;
-      background: #06C755;
-      color: white;
-      font-family: inherit;
-    }
-    .btn-line:hover { background: #05a848; }
+    .share-label { font-size: 11px; color: #888; margin-bottom: 5px; }
+    .share-url   { font-size: 10px; color: #aaa; word-break: break-all; line-height: 1.4; margin-bottom: 8px; }
 
-    /* ランキング */
+    .panel-btn {
+      width: 100%; padding: 9px; border-radius: 8px; border: none;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      margin-bottom: 7px; font-family: inherit;
+    }
+    .btn-copy  { background: rgba(86,211,100,0.15);  border: 1px solid rgba(86,211,100,0.4);  color: #56d364; }
+    .btn-line  { background: #06C755; color: white; }
+    .btn-reset { background: rgba(231,76,60,0.15);   border: 1px solid rgba(231,76,60,0.4);   color: #e74c3c; }
+    .btn-back  { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: #ccc; }
+    .btn-copy:hover  { background: rgba(86,211,100,0.3); }
+    .btn-line:hover  { background: #05a848; }
+    .btn-reset:hover { background: rgba(231,76,60,0.3); }
+    .btn-back:hover  { background: rgba(255,255,255,0.14); }
+
+    /* ランキングリスト */
     .rank-item {
-      display: flex;
-      align-items: center;
-      background: rgba(255,255,255,0.07);
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 13px;
-      padding: 13px 16px;
-      margin-bottom: 9px;
-      animation: in 0.3s ease;
+      border-radius: 12px;
+      padding: 12px 15px; margin-bottom: 8px;
+      animation: fadeIn 0.3s ease;
     }
-    @keyframes in { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
-    .rank-item.gold   { background:rgba(255,215,0,0.12); border-color:rgba(255,215,0,0.35); }
-    .rank-item.silver { background:rgba(192,192,192,0.12); border-color:rgba(192,192,192,0.3); }
-    .rank-item.bronze { background:rgba(205,127,50,0.12); border-color:rgba(205,127,50,0.35); }
-    .medal    { font-size:24px; width:34px; text-align:center; flex-shrink:0; }
-    .rank-num { font-size:17px; font-weight:800; width:34px; text-align:center; color:#777; flex-shrink:0; }
-    .rank-name{ flex:1; font-size:clamp(14px,2.5vw,17px); font-weight:600; padding:0 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .rank-score{ font-size:clamp(19px,3vw,24px); font-weight:800; color:#56d364; flex-shrink:0; }
-    .rank-score .unit{ font-size:12px; color:#888; font-weight:400; }
-    .empty { text-align:center; color:#555; padding:60px 20px; }
-    .empty .icon { font-size:44px; margin-bottom:12px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+    .rank-item.gold   { background:rgba(255,215,0,0.1);   border-color:rgba(255,215,0,0.3); }
+    .rank-item.silver { background:rgba(192,192,192,0.1); border-color:rgba(192,192,192,0.25); }
+    .rank-item.bronze { background:rgba(205,127,50,0.1);  border-color:rgba(205,127,50,0.3); }
+    .medal    { font-size:22px; width:32px; text-align:center; flex-shrink:0; }
+    .rank-num { font-size:16px; font-weight:800; width:32px; text-align:center; color:#777; flex-shrink:0; }
+    .rank-name{ flex:1; font-size:clamp(14px,2vw,16px); font-weight:600; padding:0 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rank-score{ font-size:clamp(18px,3vw,22px); font-weight:800; color:#56d364; flex-shrink:0; }
+    .rank-score .u { font-size:11px; color:#888; font-weight:400; }
+    .empty { text-align:center; color:#555; padding:50px 20px; }
+    .empty .icon { font-size:40px; margin-bottom:10px; }
 
-    /* ======= 過去結果 ======= */
-    #s-history { padding: 32px 20px; }
+    /* ===== 過去結果 ===== */
+    #s-history { padding: 28px 20px; }
     .history-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-      max-width: 900px;
-      margin: 24px auto 0;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px; max-width: 880px; margin: 20px auto 0;
     }
     .history-card {
       background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px;
-      padding: 18px 20px;
+      border-radius: 14px; padding: 16px 18px;
     }
-    .history-card h3 { font-size: 16px; font-weight: 800; margin-bottom: 10px; }
+    .history-card h3 { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+    .history-meta { font-size: 11px; color: #666; margin-bottom: 8px; }
     .history-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      padding: 4px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; justify-content: space-between;
+      font-size: 12px; padding: 3px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .history-row:last-child { border-bottom: none; }
-    .h-name { color: #ccc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 160px; }
+    .h-name  { color: #ccc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px; }
     .h-score { color: #56d364; font-weight: 700; flex-shrink:0; }
-    .history-meta { font-size: 12px; color: #666; margin-bottom: 10px; }
     .view-btn {
-      margin-top: 12px;
-      width: 100%;
-      padding: 8px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      color: #ccc;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13px;
+      margin-top: 10px; width: 100%; padding: 7px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.13);
+      color: #ccc; border-radius: 7px; cursor: pointer;
+      font-size: 12px; font-family: inherit;
     }
-    .view-btn:hover { background: rgba(255,255,255,0.15); }
+    .view-btn:hover { background: rgba(255,255,255,0.14); }
   </style>
 </head>
 <body>
 
-  <!-- 接続中 -->
-  <div id="s-connecting" class="screen active">
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;">
-      <div class="spinner"></div>
-      <p style="color:#aaa">接続中...</p>
-    </div>
-  </div>
+<!-- ===== セットアップ ===== -->
+<div id="s-setup" class="screen active">
+  <div class="setup-logo">🏠</div>
+  <div class="setup-title">宅建模試ランキング</div>
+  <div class="setup-sub">初回のみFirebase設定が必要です（約3分）</div>
 
-  <!-- 模試選択 -->
-  <div id="s-select" class="screen">
-    <div class="page-header">
-      <h1>🏠 宅建模試ランキング</h1>
-      <p>今日の模試を選んでください</p>
-    </div>
-    <div class="exam-grid" id="exam-grid"></div>
-    <div style="text-align:center">
-      <button class="btn-view panel-btn" style="display:inline-block;width:auto;padding:10px 24px;" onclick="showHistory()">
-        📊 過去の結果を見る
-      </button>
-    </div>
-  </div>
-
-  <!-- ランキング中 -->
-  <div id="s-main" class="screen">
-    <div class="top-bar">
-      <button class="back-btn" onclick="goSelect()">← 模試選択</button>
-      <span class="exam-title" id="current-title">模擬試験1</span>
-      <span class="live-badge"><span class="dot"></span>LIVE</span>
-    </div>
-    <div class="layout">
-      <div class="qr-panel">
-        <h3>生徒用QRコード</h3>
-        <div id="qrcode"></div>
-        <div class="room-label">ルームコード</div>
-        <div class="room-code" id="room-display">------</div>
-        <div class="status-line">● 受付中</div>
-        <div class="counter">参加者: <span id="count">0</span>人</div>
-
-        <div class="share-area">
-          <div class="share-label">生徒に送るURL</div>
-          <div class="share-url" id="join-url-text">—</div>
-          <button class="btn-copy" onclick="copyJoinUrl()">📋 URLをコピー</button>
-          <button class="btn-line" onclick="shareToLine()">💬 LINEで送る</button>
-        </div>
-
-        <button class="panel-btn btn-reset" onclick="resetCurrent()">🗑 スコアリセット</button>
-        <button class="panel-btn btn-view" onclick="goSelect()">← 模試を変える</button>
-      </div>
-      <div>
-        <div id="ranking-list">
-          <div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>
-        </div>
+  <div class="setup-card">
+    <div class="step-row">
+      <span class="step-num">1</span>
+      <div class="step-text">
+        <a href="https://console.firebase.google.com/" target="_blank">console.firebase.google.com</a> を開き、「プロジェクトを追加」→ 名前入力 → 作成
       </div>
     </div>
-  </div>
-
-  <!-- 過去結果 -->
-  <div id="s-history" class="screen">
-    <div class="top-bar">
-      <button class="back-btn" onclick="goSelect()">← 模試選択</button>
-      <span class="exam-title">過去の結果</span>
+    <div class="step-row">
+      <span class="step-num">2</span>
+      <div class="step-text">
+        左メニュー「Firestore Database」→「データベースを作成」→「<strong>テストモードで開始</strong>」→ リージョン <code>asia-northeast1</code> → 有効化
+      </div>
     </div>
-    <div class="history-grid" id="history-grid"></div>
+    <div class="step-row">
+      <span class="step-num">3</span>
+      <div class="step-text">
+        プロジェクトトップの <code>&lt;/&gt;</code>（Webアプリ）→ ニックネームを入力 → 登録 → 表示される <code>firebaseConfig = { … }</code> の <strong>{ } の中身だけ</strong>をコピーして下に貼り付け
+      </div>
+    </div>
+    <textarea id="config-input" class="config-textarea" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "my-project.firebaseapp.com",
+  "projectId": "my-project",
+  "storageBucket": "my-project.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123:web:abc"
+}'></textarea>
+    <div class="setup-error" id="setup-error"></div>
+    <button class="setup-btn" onclick="applyConfig()">設定して始める →</button>
   </div>
+</div>
 
-  <script>
-    // ============================================================
-    // ストレージ
-    // ============================================================
-    const STORAGE_KEY = 'takken_exam_scores';
+<!-- ===== 模試選択 ===== -->
+<div id="s-select" class="screen">
+  <div class="page-header">
+    <h1>🏠 宅建模試ランキング</h1>
+    <p>今日の模試を選んでください</p>
+    <div class="page-header-actions">
+      <button class="text-btn" onclick="resetConfig()">⚙ Firebase設定を変更</button>
+    </div>
+  </div>
+  <div class="exam-grid" id="exam-grid"></div>
+  <div class="footer-btn">
+    <button class="outline-btn" onclick="showHistory()">📊 過去の結果を見る</button>
+  </div>
+</div>
 
-    function loadAll() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
-    }
-    function saveAll(data) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-    function getExam(n) {
-      return loadAll()[`exam${n}`] || { scores: [], date: null };
-    }
-    function saveScore(n, name, score) {
-      const all  = loadAll();
-      const key  = `exam${n}`;
-      if (!all[key]) all[key] = { scores: [], date: null };
-      const idx  = all[key].scores.findIndex(s => s.name === name);
-      if (idx >= 0) all[key].scores[idx].score = score;
-      else all[key].scores.push({ name, score });
-      if (!all[key].date) all[key].date = new Date().toLocaleDateString('ja-JP');
-      saveAll(all);
-    }
-    function resetExam(n) {
-      const all = loadAll();
-      delete all[`exam${n}`];
-      saveAll(all);
-    }
+<!-- ===== ランキング中 ===== -->
+<div id="s-main" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goSelect()">← 模試選択</button>
+    <span class="exam-title" id="current-title">模擬試験1</span>
+    <span class="live-badge"><span class="dot"></span>LIVE</span>
+  </div>
+  <div class="layout">
+    <div class="qr-panel">
+      <h3>生徒用QRコード</h3>
+      <div id="qrcode"></div>
+      <div class="room-label">ルームコード不要</div>
+      <div class="status-line">● Firebase接続中</div>
+      <div class="counter">参加者: <span id="count">0</span>人</div>
 
-    // ============================================================
-    // 状態
-    // ============================================================
-    let currentExam = null;
-    let peer        = null;
-    let qrGenerated = false;
-    let currentJoinUrl = '';
-    const MEDALS  = ['🥇','🥈','🥉'];
-    const CLASSES = ['gold','silver','bronze'];
+      <div class="share-area">
+        <div class="share-label">生徒に送るURL</div>
+        <div class="share-url" id="join-url-text">—</div>
+        <button class="panel-btn btn-copy" onclick="copyJoinUrl()">📋 URLをコピー</button>
+        <button class="panel-btn btn-line" onclick="shareToLine()">💬 LINEで送る</button>
+      </div>
 
-    // ============================================================
-    // PeerJS 初期化
-    // ============================================================
-    function initPeer(callback) {
-      if (peer && peer.open) { callback(); return; }
-      const code = Math.random().toString(36).substr(2,6).toUpperCase();
-      peer = new Peer(code, { debug: 0 });
-      peer.on('open', (id) => {
-        const base = window.location.href.replace(/host\.html.*$/, '');
-        currentJoinUrl = `${base}join.html?room=${id}`;
-        show('s-select');
-        buildExamGrid();
-        callback();
+      <button class="panel-btn btn-reset" onclick="resetCurrent()">🗑 スコアリセット</button>
+      <button class="panel-btn btn-back" onclick="goSelect()">← 模試を変える</button>
+    </div>
+
+    <div>
+      <div id="ranking-list">
+        <div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 過去結果 ===== -->
+<div id="s-history" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goSelect()">← 模試選択</button>
+    <span class="exam-title">過去の結果</span>
+  </div>
+  <div class="history-grid" id="history-grid"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, query, orderBy, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ============================================================
+  // 設定管理
+  // ============================================================
+  const CONFIG_KEY  = 'takken_firebase_config';
+  const STORAGE_KEY = 'takken_exam_scores';
+
+  function loadConfig()  { try { return JSON.parse(localStorage.getItem(CONFIG_KEY)); } catch { return null; } }
+  function saveConfig(c) { localStorage.setItem(CONFIG_KEY, JSON.stringify(c)); }
+  function clearConfig() { localStorage.removeItem(CONFIG_KEY); }
+
+  // ローカルスコア（参加人数・日付表示用）
+  function localAll()    { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } }
+  function saveLocalScore(n, name, score) {
+    const all = localAll(); const key = `exam${n}`;
+    if (!all[key]) all[key] = { scores: [], date: null };
+    const idx = all[key].scores.findIndex(s => s.name === name);
+    if (idx >= 0) all[key].scores[idx].score = score;
+    else all[key].scores.push({ name, score });
+    if (!all[key].date) all[key].date = new Date().toLocaleDateString('ja-JP');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  }
+
+  // ============================================================
+  // グローバル状態
+  // ============================================================
+  let db = null, unsubscribe = null, currentExam = null, qrDone = false;
+  const MEDALS = ['🥇','🥈','🥉'], CLASSES = ['gold','silver','bronze'];
+
+  // ============================================================
+  // 初期化
+  // ============================================================
+  const savedConfig = loadConfig();
+  if (savedConfig) {
+    startApp(savedConfig);
+  } else {
+    show('s-setup');
+  }
+
+  window.applyConfig = function () {
+    const raw = document.getElementById('config-input').value.trim();
+    const err = document.getElementById('setup-error');
+    err.textContent = '';
+    try {
+      const cfg = JSON.parse(raw);
+      if (!cfg.apiKey || !cfg.projectId) throw new Error('apiKeyとprojectIdが必要です');
+      saveConfig(cfg);
+      startApp(cfg);
+    } catch(e) {
+      err.textContent = '設定コードが正しくありません: ' + e.message;
+    }
+  };
+
+  window.resetConfig = function () {
+    if (!confirm('Firebase設定をリセットしますか？')) return;
+    clearConfig();
+    location.reload();
+  };
+
+  function startApp(cfg) {
+    const app = initializeApp(cfg);
+    db = getFirestore(app);
+    show('s-select');
+    buildExamGrid();
+
+    // join URLを組み立て（apiKey + projectId をパラメータに）
+    const base = window.location.href.replace(/host\.html.*$/, '');
+    window._joinUrl = `${base}join.html?key=${encodeURIComponent(cfg.apiKey)}&pid=${encodeURIComponent(cfg.projectId)}`;
+  }
+
+  // ============================================================
+  // 画面切替
+  // ============================================================
+  window.show = function (id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  };
+
+  // ============================================================
+  // 模試グリッド
+  // ============================================================
+  window.buildExamGrid = function () {
+    const all  = localAll();
+    const grid = document.getElementById('exam-grid');
+    grid.innerHTML = Array.from({length:15}, (_,i) => {
+      const n = i+1, d = all[`exam${n}`], cnt = d ? d.scores.length : 0;
+      return `
+        <button class="exam-card ${cnt>0?'has-data':''}" onclick="startExam(${n})">
+          ${cnt>0 ? `<div class="exam-badge">${cnt}人</div>` : ''}
+          <div class="exam-num">模試 ${n}</div>
+          <div class="exam-meta">${cnt>0 ? (d.date||'実施済み') : '未実施'}</div>
+        </button>`;
+    }).join('');
+  };
+
+  window.goSelect = function () {
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    currentExam = null;
+    buildExamGrid();
+    show('s-select');
+  };
+
+  // ============================================================
+  // 模試開始
+  // ============================================================
+  window.startExam = function (n) {
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    currentExam = n;
+    document.getElementById('current-title').textContent = `模擬試験 ${n}`;
+    document.getElementById('count').textContent = '0';
+
+    // join URL 表示
+    const joinUrl = window._joinUrl + `&exam=${n}`;
+    document.getElementById('join-url-text').textContent = joinUrl;
+    window._currentJoinUrl = joinUrl;
+
+    // QRコード（模試ごとに生成）
+    const qrEl = document.getElementById('qrcode');
+    qrEl.innerHTML = '';
+    new QRCode(qrEl, { text: joinUrl, width: 180, height: 180, colorDark:'#000', colorLight:'#fff' });
+
+    show('s-main');
+
+    // Firestore リアルタイム購読
+    const col = collection(db, `exams/exam${n}/scores`);
+    const q   = query(col, orderBy('score','desc'));
+    unsubscribe = onSnapshot(q, snap => {
+      document.getElementById('count').textContent = snap.size;
+      snap.forEach(d => {
+        const { name, score } = d.data();
+        saveLocalScore(n, name, score);
       });
-      peer.on('connection', (conn) => {
-        conn.on('data', (data) => {
-          if (!data.name || typeof data.score !== 'number') return;
-          if (currentExam === null) return;
-          saveScore(currentExam, data.name, data.score);
-          renderRanking();
-          conn.send({ status: 'ok' });
-        });
-      });
-      peer.on('error', () => {
-        if (!peer.open) {
-          peer = null;
-          initPeer(callback);
-        }
-      });
-    }
+      renderRanking(snap.docs.map(d => d.data()).sort((a,b) => b.score - a.score));
+    });
+  };
 
-    // ============================================================
-    // 画面切替
-    // ============================================================
-    function show(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
+  window.resetCurrent = async function () {
+    if (!confirm(`模擬試験 ${currentExam} のスコアをリセットしますか？`)) return;
+    const col  = collection(db, `exams/exam${currentExam}/scores`);
+    const snap = await getDocs(col);
+    await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+    // ローカルも削除
+    const all = localAll(); delete all[`exam${currentExam}`];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  };
 
-    // ============================================================
-    // 模試選択グリッド
-    // ============================================================
-    function buildExamGrid() {
-      const all  = loadAll();
-      const grid = document.getElementById('exam-grid');
-      grid.innerHTML = Array.from({length:15}, (_,i) => {
-        const n   = i + 1;
-        const key = `exam${n}`;
-        const d   = all[key];
-        const cnt = d ? d.scores.length : 0;
-        const hasData = cnt > 0;
-        return `
-          <div class="exam-card ${hasData?'has-data':''}" onclick="startExam(${n})">
-            ${hasData ? `<div class="exam-badge">${cnt}人</div>` : ''}
-            <div class="exam-num">模試 ${n}</div>
-            <div class="exam-meta">${hasData ? d.date || '実施済み' : '未実施'}</div>
-          </div>`;
+  // ============================================================
+  // ランキング描画
+  // ============================================================
+  function renderRanking(scores) {
+    const list = document.getElementById('ranking-list');
+    if (!scores.length) {
+      list.innerHTML = `<div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>`;
+      return;
+    }
+    list.innerHTML = scores.map((s,i) => {
+      const cls = CLASSES[i]??'', med = MEDALS[i]??'';
+      return `
+        <div class="rank-item ${cls}">
+          ${med ? '' : `<div class="rank-num">${i+1}</div>`}
+          <div class="medal">${med}</div>
+          <div class="rank-name">${esc(s.name)}</div>
+          <div class="rank-score">${s.score}<span class="u">点</span></div>
+        </div>`;
+    }).join('');
+  }
+
+  // ============================================================
+  // 過去結果
+  // ============================================================
+  window.showHistory = function () {
+    const all  = localAll();
+    const keys = Object.keys(all).sort((a,b) => +a.replace('exam','') - +b.replace('exam',''));
+    const grid = document.getElementById('history-grid');
+    if (!keys.length) {
+      grid.innerHTML = `<p style="color:#666;grid-column:1/-1;text-align:center;padding:60px 0">まだ結果がありません</p>`;
+    } else {
+      grid.innerHTML = keys.map(key => {
+        const n = key.replace('exam',''), d = all[key];
+        const top = [...d.scores].sort((a,b)=>b.score-a.score).slice(0,5);
+        return `<div class="history-card">
+          <h3>模擬試験 ${n}</h3>
+          <div class="history-meta">${d.date||''} ／ ${d.scores.length}人参加</div>
+          ${top.map(s=>`<div class="history-row"><span class="h-name">${esc(s.name)}</span><span class="h-score">${s.score}点</span></div>`).join('')}
+          <button class="view-btn" onclick="startExam(${n})">このランキングを表示</button>
+        </div>`;
       }).join('');
     }
+    show('s-history');
+  };
 
-    function goSelect() {
-      currentExam = null;
-      buildExamGrid();
-      show('s-select');
-    }
+  // ============================================================
+  // URL共有
+  // ============================================================
+  window.copyJoinUrl = async function () {
+    const url = window._currentJoinUrl; if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      const btn = document.querySelector('.btn-copy');
+      btn.textContent = '✅ コピーしました！';
+      setTimeout(() => btn.textContent = '📋 URLをコピー', 2000);
+    } catch { prompt('このURLをコピーしてください:', url); }
+  };
 
-    // ============================================================
-    // 模試開始
-    // ============================================================
-    function startExam(n) {
-      currentExam = n;
-      document.getElementById('current-title').textContent = `模擬試験 ${n}`;
-      document.getElementById('count').textContent = getExam(n).scores.length;
-      document.getElementById('room-display').textContent = peer.id;
+  window.shareToLine = function () {
+    const url  = window._currentJoinUrl; if (!url) return;
+    const text = encodeURIComponent(`【宅建模試】点数を入力してください👇\n${url}`);
+    window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${text}`, '_blank');
+  };
 
-      // URL表示を更新
-      document.getElementById('join-url-text').textContent = currentJoinUrl;
-
-      // QRコード生成（初回のみ）
-      if (!qrGenerated) {
-        document.getElementById('qrcode').innerHTML = '';
-        new QRCode(document.getElementById('qrcode'), {
-          text: currentJoinUrl,
-          width: 180, height: 180,
-          colorDark: '#000', colorLight: '#fff'
-        });
-        qrGenerated = true;
-      }
-
-      renderRanking();
-      show('s-main');
-    }
-
-    function resetCurrent() {
-      if (!confirm(`模擬試験 ${currentExam} のスコアをリセットしますか？`)) return;
-      resetExam(currentExam);
-      renderRanking();
-    }
-
-    async function copyJoinUrl() {
-      if (!currentJoinUrl) return;
-      try {
-        await navigator.clipboard.writeText(currentJoinUrl);
-        const btn = document.querySelector('.btn-copy');
-        btn.textContent = '✅ コピーしました！';
-        setTimeout(() => { btn.textContent = '📋 URLをコピー'; }, 2000);
-      } catch {
-        prompt('このURLをコピーしてください：', currentJoinUrl);
-      }
-    }
-
-    function shareToLine() {
-      if (!currentJoinUrl) return;
-      const text = encodeURIComponent(`【宅建模試】点数を入力してください👇\n${currentJoinUrl}`);
-      window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(currentJoinUrl)}&text=${text}`, '_blank');
-    }
-
-    // ============================================================
-    // ランキング描画
-    // ============================================================
-    function renderRanking() {
-      if (currentExam === null) return;
-      const exam   = getExam(currentExam);
-      const sorted = [...exam.scores].sort((a,b) => b.score - a.score);
-      document.getElementById('count').textContent = sorted.length;
-
-      const list = document.getElementById('ranking-list');
-      if (!sorted.length) {
-        list.innerHTML = `<div class="empty"><div class="icon">⏳</div>生徒の送信を待っています...</div>`;
-        return;
-      }
-      list.innerHTML = sorted.map((s,i) => {
-        const cls   = CLASSES[i] ?? '';
-        const medal = MEDALS[i]  ?? '';
-        const numEl = medal ? '' : `<div class="rank-num">${i+1}</div>`;
-        const medEl = `<div class="medal">${medal}</div>`;
-        return `
-          <div class="rank-item ${cls}">
-            ${numEl}${medEl}
-            <div class="rank-name">${esc(s.name)}</div>
-            <div class="rank-score">${s.score}<span class="unit">点</span></div>
-          </div>`;
-      }).join('');
-    }
-
-    // ============================================================
-    // 過去結果
-    // ============================================================
-    function showHistory() {
-      const all  = loadAll();
-      const grid = document.getElementById('history-grid');
-      const keys = Object.keys(all).sort((a,b) => parseInt(a.replace('exam','')) - parseInt(b.replace('exam','')));
-
-      if (!keys.length) {
-        grid.innerHTML = `<p style="color:#666;text-align:center;grid-column:1/-1;padding:60px 0">まだ結果がありません</p>`;
-      } else {
-        grid.innerHTML = keys.map(key => {
-          const n      = key.replace('exam','');
-          const exam   = all[key];
-          const sorted = [...exam.scores].sort((a,b) => b.score - a.score).slice(0,5);
-          const rows   = sorted.map(s =>
-            `<div class="history-row"><span class="h-name">${esc(s.name)}</span><span class="h-score">${s.score}点</span></div>`
-          ).join('');
-          return `
-            <div class="history-card">
-              <h3>模擬試験 ${n}</h3>
-              <div class="history-meta">${exam.date || ''} ／ ${exam.scores.length}人参加</div>
-              ${rows}
-              <button class="view-btn" onclick="startExam(${n})">このランキングを表示</button>
-            </div>`;
-        }).join('');
-      }
-      show('s-history');
-    }
-
-    function esc(str) {
-      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    // ============================================================
-    // 起動
-    // ============================================================
-    initPeer(() => {});
-  </script>
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
 </body>
 </html>
